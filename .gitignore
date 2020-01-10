@@ -1,1 +1,11 @@
 ZeusBak
+/build/AppendFW.pdb
+/build/AppendFW.vshost.exe
+/build/AppendFW.vshost.exe.manifest
+bin
+obj
+*.suo
+*.user
+/fw/ESP8266_FULL_V3.3_SPUGS/.idea
+/fw/ESP8266_FULL_V3.3_SPUGS/venv
+/fw/ESP8266_FULL_V3.3_SPUGS/venv1

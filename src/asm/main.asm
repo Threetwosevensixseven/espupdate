@@ -9,10 +9,46 @@ UploadNext optionbool 160, -15, "Next", false           ; Copy dot command to Ne
 ErrDebug optionbool 212, -15, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
 
 org $2000                                               ; Dot commands always start at $2000.
-Start:                  Freeze(1,2)
+Start:
+                        PrintMsg(Msg.Startup)
+
+                        call esxDOS.GetHandle
+
+                        //ld l, 0                         ; 0 - from start of file
+                        //ld bc, 0                        ; BCDE = bytes to seek
+                        //ld de, 0
+                        //call esxDOS.fSeek
+
+                        //CSBreak()
+
+                        //ld hl, $C000
+                        //ld bc, $2000
+                        //call esxDOS.fRead
+
+                        //call ESPSendTestBytes
+                        //Freeze(1,4)
+
+                        //CSBreak()
+DoSync:
+                        PrintMsg(Msg.SendSync)
+                        call ESPFlush                   ; Clear the UART buffer first
+                        ld b, 1                         ; Send ESP Sync command up to seven times
+SyncLoop:               push bc
+                        ESPSendBytes(SLIP.Sync, SLIP.SyncLen) ; Send the command
+                        //call ESPFlush                   ; Clear any response from the UART buffer
+                        pop bc
+                        djnz SyncLoop
+                        PrintMsg(Msg.RcvSync)
+                        call ESPRead
+
+                        Freeze(1,2)
 
                         include "constants.asm"         ; Global constants
                         include "macros.asm"            ; Zeus macros
+                        include "esp.asm"               ; ESP and SLIP routines
+                        include "esxDOS.asm"            ; ESXDOS routines
+                        include "msg.asm"               ; Messaging and error routines
+                        include "vars.asm"              ; Global variables
 
 Length equ $-Start
 zeusprinthex "Command size: ", Length

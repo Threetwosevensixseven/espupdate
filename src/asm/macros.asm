@@ -36,3 +36,21 @@ CSExit                  macro()                         ; Intended for CSpect de
                         noflow                          ; enabled when the -exit switch is supplied
                         db $DD, $00                     ; This executes as NOP:NOP on real hardware
 mend
+
+PrintMsg                macro(Address)
+                        ld hl, Address
+                        call PrintRst16
+mend
+
+Rst8                    macro(Command)
+                        rst $08
+                        noflow
+                        db Command
+mend
+
+ESPSendBytes            macro(BufferStart, BufferLen)
+                        ld hl, BufferStart
+                        ld de, BufferLen
+                        call ESPSendBytesProc
+mend
+

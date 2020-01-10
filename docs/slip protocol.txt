@@ -1,0 +1,23 @@
+C0 = SLIP frame start/end
+00 = Command Prefix (B1)
+08 = Op (B1)
+2400 = Payload length (36 dec) (H2)
+00000000 = checksum (I4)
+07071220[55 repeated 32dec times] = payload
+C0 = SLIP frame start/end
+
+.pack() format string "<BBHI"
+< = little endian
+B = unsigned char (1 byte)
+H = unsigned short (2 bytes)
+I = unsigned int (4 bytes)
+
+pull down RST pin
+pull down GPIO0 pin
+release up RST pin
+release up GPIO0 pin
+
+1) short RST to GND
+2) short GPIO0 to GND
+3) disconnect RST from GND
+4) disconnect GPIO0 from GND
