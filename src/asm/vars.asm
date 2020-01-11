@@ -1,8 +1,5 @@
 ; vars.asm
 
-Pages                   proc
-
-  ds 111, 255
-
-pend
+Buffer:                 ds 1024
+BufferLen               equ $-Buffer
 

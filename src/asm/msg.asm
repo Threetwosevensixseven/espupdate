@@ -4,8 +4,8 @@ Msg                     proc
   Startup:              db "ESP Update Tool v1."
                         BuildNo()
                         db CR, 0
-  SendSync:             db "Sending sync...", CR, 0
-  RcvSync:              db "Receiving sync...", CR, 0
+  SendSync:             db "Syncing...", CR, 0
+  RcvSync:              db "Receiving sync", CR, 0
   ESPProg1:             db CR, "Setting ESP programming mode...", CR, 0
   ESPProg2:             db "Enabling GPIO0 output", CR, 0
   ESPProg3:             db "Setting RST low", CR, 0
@@ -13,6 +13,11 @@ Msg                     proc
   ESPProg5:             db "Setting RST high", CR, 0
   ESPProg6:             db "Setting GPIO0 high", CR, 0
   ESPProg7:             db "Reading UART buffer...", CR, CR, 0
+  SyncOK:               db "Sync OK", CR, 0
+pend
+
+Err                     proc
+  NoSync:               db "Sync failur", 'e'|128
 pend
 
 PrintRst16              proc
@@ -27,6 +32,23 @@ Loop:                   ld a, (hl)
                         jr Loop
 Return:                 di
                         ret
+pend
+
+PrintRst16Error         proc
+                        ei
+Loop:                   ld a, (hl)
+                        ld b, a
+                        and %1 0000000
+                        ld a, b
+                        jp nz, LastChar
+                        inc hl
+                        rst 16
+                        jr Loop
+Return:                 di
+                        ret
+LastChar                and %0 1111111
+                        rst 16
+                        jr Return
 pend
 
 PrintAHex               proc

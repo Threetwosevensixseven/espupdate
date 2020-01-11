@@ -102,3 +102,91 @@ HasData:
                         jr WaitNotBusy                  ; then check if there are more data bytes ready to read
 pend
 
+ClearBuffer:            proc
+                        FillLDIR(Buffer, BufferLen, 0)
+                        ret
+pend
+
+ESPReadIntoBuffer       proc
+                        call ClearBuffer
+                        ld a, (FRAMES)
+                        add a, 5
+                        ld (TimeoutFrame), a
+                        ld bc, UART_GetStatus
+                        ld hl, Buffer
+                        ld de, BufferLen
+                        ei
+WaitNotBusy:            in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
+                        rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
+                        jp c, HasData                   ; Read Data if available
+                        ld a, (FRAMES)
+TimeoutFrame equ $+1:   cp SMC
+                        jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
+                        di
+                        scf                             ; Set carry to signal error if N frames with no data,
+                        ret                             ; and return
+HasData:                inc b                           ; Otherwise Read the byte,
+                        in a, (c)                       ; from the UART Rx port,
+                        dec b
+                        ld (hl), a                      ; and write into buffer
+                        inc hl
+                        dec de                          ; See if any more buffer left
+                        ld a, d
+                        or e
+                        jr nz, WaitNotBusy              ; If so, check if there are more data bytes ready to read,
+                        or a                            ; otherwise clear carry to signal success,
+                        di
+                        ret                             ; and return
+pend
+
+ValidateCmdProc         proc
+                        ld hl, Buffer
+                        ld bc, BufferLen
+FindFrame:              ld a, $C0
+                        cpir                            ; Find next SLIP frame marker
+                        jp po, Fail                     ; If we ran out of buffer, exit with failure
+                        jr nz, Fail                     ; If we didn't find a $C0, exit with failure
+                        ld a, (hl)                      ; Read req/resp
+                        dec bc
+                        cp 1                            ; Is cmd response?
+                        jp nz, FindFrame                ; If not, find next frame marker
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read Op
+Opcode equ $+1:         cp SMC                          ; Is expected Op?
+                        jp nz, FindFrame                ; If not, find next frame marker
+                        inc hl
+                        dec bc
+                        ld e, (hl)
+                        inc hl
+                        dec bc
+                        ld d, (hl)                      ; Read length word
+                        for n = 1 to 4
+                          inc hl                        ; Skip 4 bytes of data (for now)
+                          dec bc                        ; (maybe we will save a pointer to this later)
+                        next
+                        add hl, de                      ; Skip <length> bytes of value (for now)
+                        push hl                         ; (maybe we will save a pointer to this later)
+                        ld hl, bc
+                        or a
+                        sbc hl, de                      ; And reduce remaining buffer len by <length>
+                        ld bc, hl
+                        pop hl
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read SLIP frame end
+                        cp $C0                          ; Is expected frame marker?
+                        jp nz, FindFrame                ; If not, find next frame marker
+
+                        or a                            ; Clear carry for success,
+                        ret                             ; and return
+Fail:                   scf                             ; Set carry for error,
+                        ret                             ; and return
+pend
+
+ErrorProc               proc
+                        call PrintRst16Error
+Stop:                   Border(2)
+                        jr Stop
+pend
+

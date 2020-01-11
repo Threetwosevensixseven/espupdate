@@ -70,3 +70,25 @@ WaitFrames              macro(Frames)
                         di
 mend
 
+FillLDIR                macro(SourceAddr, Size, Value)
+                        ld a, Value
+                        ld hl, SourceAddr
+                        ld (hl), a
+                        ld de, SourceAddr+1
+                        ld bc, Size-1
+                        ldir
+mend
+
+ValidateCmd             macro(Op)
+                        ld a, Op
+                        ld (ValidateCmdProc.Opcode), a
+                        call ValidateCmdProc
+mend
+
+ErrorIfCarry            macro(ErrAddr)
+                        jp nc, Continue
+                        ld hl, ErrAddr
+                        jp ErrorProc
+Continue:
+mend
+
