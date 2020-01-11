@@ -36,7 +36,7 @@ EnableProgMode:
 
                         //PrintMsg(Msg.ESPProg3)           ; "Setting RST low"
                         nextreg 2, 128                   ; Set RST low
-                        WaitFrames(ResetWait)
+                        call Wait5Frames
 
                         //PrintMsg(Msg.ESPProg2)           ; "Enabling GPIO0 output"
                         NextRegRead(168)
@@ -49,17 +49,17 @@ EnableProgMode:
                         and %1111 1110                   ; Clear bit 0
                         push af
                         nextreg 169, a                   ; to set GPIO0 low
-                        WaitFrames(ResetWait)
+                        call Wait5Frames
 
                         //PrintMsg(Msg.ESPProg5)           ; "Setting RST high"
                         nextreg 2, 0                     ; Set RST high
-                        WaitFrames(ResetWait)
+                        call Wait5Frames
 
                         //PrintMsg(Msg.ESPProg6)           ; "Setting GPIO0 high"
                         pop af
                         or %1                            ; Set bit 0
                         nextreg 169, a                   ; to set GPIO0 high
-                        WaitFrames(ResetWait)
+                        call Wait5Frames
 
                         //PrintMsg(Msg.ESPProg7)           ; "Disabling GPIO0 output"
                         pop af
@@ -113,10 +113,38 @@ ReadEfuses:
                         call Wait5Frames
                         call ESPReadIntoBuffer
                         ValidateCmd($0A, eFuse4)        ; val = 0x5A240000 (on test ESP)
-
-                        PrintBufferHex(eFuses, 16)
-
                         // Full 128b value of all four eFuses = 0x00600194 1700B000 020021E8 5A240000 (on test ESP)
+CheckChip:
+                        //PrintBufferHex(eFuses, 16)
+                        // is_8285 = (efuses & ((1 << 4) | 1 << 80)) != 0
+                        // Bit 5   = eFuse4 byte 4 (%0001 0000)
+                        // Bit 81  = eFuse2 byte 2 (%0000 0001)
+                        // Note the words are stored most significant,
+                        // and the bytes are also stored most significant.
+                        // If either of these bits are set, chip is ESP8285, otherwise ESP8266EX.
+                        ld a, (eFuse4+3)
+                        and %0001 0000
+                        jr nz, Is8285_
+                        ld a, (eFuse2+1)
+                        and %0000 0001
+                        jr nz, Is8285_
+                        PrintMsg(Msg.ESP8266EX)
+                        xor a
+                        jr EndCheckChip
+Is8285_:                PrintMsg(Msg.ESP8285)
+                        ld a, 1
+EndCheckChip:           ld (Features.Is8285), a
+
+CheckFeatures:
+                        PrintMsg(Msg.FWiFi)              ; Every ESP has WiFi
+                        ld a, (Features.Is8285)
+                        or a
+                        jr z, NoEmbFlash
+                        PrintMsg(Msg.FFLash)             ; 8285s have embedded flash
+                        ld a, 1
+                        jr EndFeatures
+NoEmbFlash:             xor a
+EndFeatures:            ld (Features.EmbFlash), a
 
                         zeusprinthex "Buffer: ",Buffer
                         zeusprinthex "eFuses: ", eFuses

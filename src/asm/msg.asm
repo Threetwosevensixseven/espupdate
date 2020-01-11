@@ -15,7 +15,11 @@ Msg                     proc
   ESPProg7:             db "Disabling GPIO0 output", CR, 0
   ESPProg8:             db "Reading UART buffer...", CR, CR, 0
   SyncOK:               db "Sync OK", CR, 0
-  Fuse1:                db "Reading eFuses...", CR, CR, 0
+  Fuse1:                db "Reading eFuses...", CR, 0
+  ESP8266EX:            db "Chip is ESP8266EX", CR, 0
+  ESP8285:              db "Chip is ESP8285", CR, 0
+  FWiFi:                db "Features: WiFi", CR, 0
+  FFLash:               db "          Embedded Flash", CR, 0
 pend
 
 Err                     proc
@@ -106,11 +110,11 @@ PrintBufferHexProc      proc                            ; hl = Addr, de = Length
 pend
 
 Wait5Frames             proc
+                        ei
                         for n = 1 to 5
                           halt
                         next
+                        di
                         ret
 pend
-
-
 
