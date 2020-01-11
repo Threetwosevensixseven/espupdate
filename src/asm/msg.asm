@@ -4,13 +4,20 @@ Msg                     proc
   Startup:              db "ESP Update Tool v1."
                         BuildNo()
                         db CR, 0
-  SendSync:             db "Sending Sync...", CR, 0
-  RcvSync:              db "Receiving Sync...", CR, 0
+  SendSync:             db "Sending sync...", CR, 0
+  RcvSync:              db "Receiving sync...", CR, 0
+  ESPProg1:             db CR, "Setting ESP programming mode...", CR, 0
+  ESPProg2:             db "Enabling GPIO0 output", CR, 0
+  ESPProg3:             db "Setting RST low", CR, 0
+  ESPProg4:             db "Setting GPIO0 low", CR, 0
+  ESPProg5:             db "Setting RST high", CR, 0
+  ESPProg6:             db "Setting GPIO0 high", CR, 0
+  ESPProg7:             db "Reading UART buffer...", CR, CR, 0
 pend
 
 PrintRst16              proc
                         ld a, 24                        ; Set upper screen to not scroll
-                        ld(23692), a                    ; for another 24 rows of printing
+                        ld (23692), a                   ; for another 24 rows of printing
                         ei
 Loop:                   ld a, (hl)
                         inc hl
@@ -25,7 +32,7 @@ pend
 PrintAHex               proc
                         ld b, a
                         ld a, 24                        ; Set upper screen to not scroll
-                        ld(23692), a                    ; for another 24 rows of printing
+                        ld (23692), a                   ; for another 24 rows of printing
                         ld a, b
                         and $F0
                         swapnib
@@ -43,6 +50,22 @@ Print:                  cp 10
                         jr c, Add
                         ld c, 'A'-10
 Add:                    add a, c
+                        rst 16
+                        ret
+pend
+
+PrintChar               proc
+                        ld b, a
+                        ld a, 24                        ; Set upper screen to not scroll
+                        ld (23692), a                   ; for another 24 rows of printing
+                        ld a, b
+                        cp 32
+                        jr c, NotPrintable
+                        cp 127
+                        jr nc, NotPrintable
+                        rst 16
+                        ret
+NotPrintable:           ld a, '.'
                         rst 16
                         ret
 pend

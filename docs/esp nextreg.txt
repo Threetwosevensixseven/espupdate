@@ -1,0 +1,9 @@
+0xA8 (168) => ESP Wifi GPIO Output Enable (soft reset = 0)
+(R/W)
+  bit 2 = GPIO2 output enable (fixed at 0, GPIO2 is read-only)
+  bit 0 = GPIO0 output enable
+
+0xA9 (169) => ESP Wifi GPIO
+(R/W)
+  bit 2 = Read / Write ESP GPIO2 (hard reset = 1)
+  bit 0 = Read / Write ESP GPIO0 (hard reset = 1)

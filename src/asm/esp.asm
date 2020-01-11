@@ -77,3 +77,28 @@ HasData:
                         jr WaitNotBusy                  ; then check if there are more data bytes ready to read
 pend
 
+ESPReadPrint            proc
+                        ld a, (FRAMES)
+                        add a, 5
+                        ld (TimeoutFrame), a
+                        ld bc, UART_GetStatus
+                        ei
+WaitNotBusy:            ld a, high UART_GetStatus       ; Are there any characters waiting?
+                        in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
+                        rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
+                        jp c, HasData                   ; Read Data if Available
+                        ld a, (FRAMES)
+TimeoutFrame equ $+1:   cp SMC
+                        jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
+                        di
+                        ret                             ; Return if N frames (5) has elapsed with no data
+HasData:
+                        inc b                           ; Otherwise Read the byte
+                        in a, (c)                       ; from the UART Rx port
+                        push bc
+                        call PrintChar
+                        pop bc
+                        dec b
+                        jr WaitNotBusy                  ; then check if there are more data bytes ready to read
+pend
+

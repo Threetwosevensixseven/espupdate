@@ -1,0 +1,58 @@
+Still working on my editor.  Just working on the most difficult routine in the program at the moment.  It's the routine that moves the buffer gap so you have a new insert point.  I have to move data across pages and update line offsets.
+
+It's nearly done
+
+When that is done, adding character inserting and newlines etc will be a breeze
+
+awesome 
+@Matt
+
+It will allocate another page from the OS, if you do to make room
+
+If you don't want to go that route, there are routines in there to allocate single pages
+
+So for example, if you have 40 bytes left in a page and you allocate 80 bytes, it will allocate a new page, waste 40 bytes then allocate 80 on the new one
+
+makes sense
+
+If you need to allocate across pages, you may need to add a layer on top of that to split an allocation into 2
+
+I think I'm mostly going to allocate full 8K blocks here
+
+I still don't know what my options are to get the data onto the ESP, so it will depend on that
+
+Also with arenas, you need to "prepare" a virtual address (returned from an allocation) - this pages in the relevant page into MMU6, and returns a real address
+
+Let me know if you need help
+
+it sounds great but I'll need to try to use it to fully understand what you're sying
+
+For usre
+
+sure
+
+cheers!
+
+It's heavily commented
+
+yes comments look great
+
+
+But if they are not good enough to explain things, then grab me
+
+The interface is:
+
+;;      arena_new       Creates a new arena and returns a handle to that arena for use in other functions.
+;;      arena_done      Destroy an arena, giving back all allocated pages back to the OS.
+;;      arena_align     Make sure the next allocation starts at the beginning of a new page and return its index.
+;;      arena_alloc     Allocate up to 8K bytes and return a 24-bit reference to that memory.
+;;      arena_prepare   Ensure that allocated memory is paged in so it is visible by the CPU.  Returns a real address.
+
+I'm quite proud of this code as I feel it will be the gift that keeps on giving
+
+If you find bugs or have improvements, please let me know
+
+awesomesauce
+open awesomesauce
+
+https://gitlab.com/zxnexttools/ned/blob/master/src/memory.s

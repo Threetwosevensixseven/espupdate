@@ -54,3 +54,19 @@ ESPSendBytes            macro(BufferStart, BufferLen)
                         call ESPSendBytesProc
 mend
 
+NextRegRead             macro(Register)
+                        ld bc, $243B
+                        ld a, Register
+                        out (c), a
+                        inc b
+                        in a, (c)
+mend
+
+WaitFrames              macro(Frames)
+                        ei
+                        for n = 1 to Frames
+                          halt
+                        next
+                        di
+mend
+

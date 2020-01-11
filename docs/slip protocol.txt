@@ -21,3 +21,9 @@ release up GPIO0 pin
 2) short GPIO0 to GND
 3) disconnect RST from GND
 4) disconnect GPIO0 from GND
+
+nextreg 168, 1 ; enable GPIO0            
+nextreg 2, 128 ; set RST low               
+nextreg 169, %100 ; set GPIO0 low                                 
+nextreg 2, 0 ; set RST high                                        
+nextreg 169, %101 ; set GPIO0 high

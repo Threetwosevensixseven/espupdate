@@ -29,10 +29,51 @@ Start:
                         //Freeze(1,4)
 
                         //CSBreak()
+
+
+EnableProgMode:
+                        PrintMsg(Msg.ESPProg1)           ; "Setting ESP programming mode..."
+                        PrintMsg(Msg.ESPProg2)           ; "Enabling GPIO0 output"
+                        NextRegRead(168)
+                        or %1                            ; Set bit 0
+                        nextreg 168, a                   ; to enable GPIO0
+                        PrintMsg(Msg.ESPProg3)           ; "Setting RST low"
+                        nextreg 2, 128                   ; Set RST low
+                        WaitFrames(ResetWait)
+
+                        PrintMsg(Msg.ESPProg4)           ; "Setting GPIO0 low"
+                        NextRegRead(169)
+                        and %1111 1110                   ; Clear bit 0
+                        push af
+                        nextreg 169, a                   ; to set GPIO0 low
+                        WaitFrames(ResetWait)
+
+                        PrintMsg(Msg.ESPProg5)           ; "Setting RST high"
+                        nextreg 2, 0                     ; Set RST high
+                        WaitFrames(ResetWait)
+
+                        PrintMsg(Msg.ESPProg6)           ; "Setting GPIO0 high"
+                        pop af
+                        or %1                            ; Set bit 0
+                        nextreg 169, a                   ; to set GPIO0 high
+                        WaitFrames(ResetWait)
+
+                        //PrintMsg(Msg.ESPProg7)           ; "Reading UART buffer..."
+
+                        //nextreg 168, 1                  ; enable GPIO0
+                        //nextreg 2, 128                  ; set RST low
+                        //nextreg 169, %100               ; set GPIO0 low
+                        //nextreg 2, 0                    ; set RST high
+                        //nextreg 169, %101               ; set GPIO0 high
+
+                        //call ESPReadPrint
+
+
+
 DoSync:
                         PrintMsg(Msg.SendSync)
                         call ESPFlush                   ; Clear the UART buffer first
-                        ld b, 1                         ; Send ESP Sync command up to seven times
+                        ld b, 2                         ; Send ESP Sync command up to seven times
 SyncLoop:               push bc
                         ESPSendBytes(SLIP.Sync, SLIP.SyncLen) ; Send the command
                         //call ESPFlush                   ; Clear any response from the UART buffer

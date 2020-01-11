@@ -1,5 +1,8 @@
 ; constants.asm
 
+; Application
+ResetWait               equ 5
+
 ; esxDOS
 M_ERRH                  equ $95
 
