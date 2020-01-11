@@ -938,7 +938,7 @@ class ESP8266ROM(ESPLoader):
 
     def get_efuses(self):
         # Return the 128 bits of ESP8266 efuse as a single Python integer
-        fooval = self.read_reg(0x3ff0005c)
+        # fooval = self.read_reg(0x3ff0005c)
         return (self.read_reg(0x3ff0005c) << 96 |
                 self.read_reg(0x3ff00058) << 64 |
                 self.read_reg(0x3ff00054) << 32 |

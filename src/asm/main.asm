@@ -33,27 +33,39 @@ Start:
 
 EnableProgMode:
                         PrintMsg(Msg.ESPProg1)           ; "Setting ESP programming mode..."
+
+                        //PrintMsg(Msg.ESPProg3)           ; "Setting RST low"
+                        nextreg 2, 128                   ; Set RST low
+                        WaitFrames(ResetWait)
+
                         //PrintMsg(Msg.ESPProg2)           ; "Enabling GPIO0 output"
                         NextRegRead(168)
                         or %1                            ; Set bit 0
                         nextreg 168, a                   ; to enable GPIO0
-                        //PrintMsg(Msg.ESPProg3)           ; "Setting RST low"
-                        nextreg 2, 128                   ; Set RST low
-                        WaitFrames(ResetWait)
+                        push af
+
                         //PrintMsg(Msg.ESPProg4)           ; "Setting GPIO0 low"
                         NextRegRead(169)
                         and %1111 1110                   ; Clear bit 0
                         push af
                         nextreg 169, a                   ; to set GPIO0 low
                         WaitFrames(ResetWait)
+
                         //PrintMsg(Msg.ESPProg5)           ; "Setting RST high"
                         nextreg 2, 0                     ; Set RST high
                         WaitFrames(ResetWait)
+
                         //PrintMsg(Msg.ESPProg6)           ; "Setting GPIO0 high"
                         pop af
                         or %1                            ; Set bit 0
                         nextreg 169, a                   ; to set GPIO0 high
                         WaitFrames(ResetWait)
+
+                        //PrintMsg(Msg.ESPProg7)           ; "Disabling GPIO0 output"
+                        pop af
+                        and %1111 1110                   ; Clear bit 0
+                        nextreg 168, a                   ; to enable GPIO0
+                        push af
 DoSync:
                         PrintMsg(Msg.SendSync)
                         call ESPFlush                   ; Clear the UART buffer first
@@ -64,24 +76,50 @@ SyncLoop:               push bc
                         djnz SyncLoop
                         //PrintMsg(Msg.RcvSync)
                         call ESPReadIntoBuffer
-                        ValidateCmd($08)                ; Check whether this we got a sync response
+                        ValidateCmd($08, Dummy32)       ; Check whether this we got a sync response
                         ErrorIfCarry(Err.NoSync)
                         PrintMsg(Msg.SyncOK)
 
 ReadEfuses:
                         PrintMsg(Msg.Fuse1)
-                        WaitFrames(5)
-                        call ESPFlush
-                        WaitFrames(5)
+                        call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
-                        WaitFrames(5)
-                        ESPSendBytes(SLIP.ReadReg, SLIP.ReadRegLen) ; Send the command
-                        WaitFrames(5)
-                        call ESPRead                    ; val = 6291860 or 0x00600194
-                        WaitFrames(5)
-                        call ESPFlush
+                        call Wait5Frames
+                        ESPReadReg(0x3ff0005c)          ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, eFuse1)        ; val = 0x00600194 (on test ESP)
+
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(0x3ff00058)          ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, eFuse2)        ; val = 0x1700B000 (on test ESP)
+
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(0x3ff00054)          ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, eFuse3)        ; val = 0x020021E8 (on test ESP)
+
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(0x3ff00050)          ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, eFuse4)        ; val = 0x5A240000 (on test ESP)
+
+                        PrintBufferHex(eFuses, 16)
+
+                        // Full 128b value of all four eFuses = 0x00600194 1700B000 020021E8 5A240000 (on test ESP)
 
                         zeusprinthex "Buffer: ",Buffer
+                        zeusprinthex "eFuses: ", eFuses
                         Freeze(1,2)
 
                         include "constants.asm"         ; Global constants

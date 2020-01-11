@@ -75,8 +75,7 @@ TimeoutFrame equ $+1:   cp SMC
                         jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
                         di
                         ret                             ; Return if N frames (5) has elapsed with no data
-HasData:
-                        inc b                           ; Otherwise Read the byte
+HasData:                inc b                           ; Otherwise Read the byte
                         in a, (c)                       ; from the UART Rx port
                         push bc
                         call PrintAHex
@@ -100,8 +99,7 @@ TimeoutFrame equ $+1:   cp SMC
                         jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
                         di
                         ret                             ; Return if N frames (5) has elapsed with no data
-HasData:
-                        inc b                           ; Otherwise Read the byte
+HasData:                inc b                           ; Otherwise Read the byte
                         in a, (c)                       ; from the UART Rx port
                         push bc
                         call PrintChar
@@ -147,7 +145,15 @@ HasData:                inc b                           ; Otherwise Read the byt
                         ret                             ; and return
 pend
 
-ValidateCmdProc         proc
+ValidateCmdProc         proc                            ; a = Op, hl = ValWordAddr
+                        ld (ValidateCmdProc.Opcode), a
+                        ld (ValWordAddr4), hl
+                        inc hl
+                        ld (ValWordAddr3), hl
+                        inc hl
+                        ld (ValWordAddr2), hl
+                        inc hl
+                        ld (ValWordAddr1), hl
                         ld hl, Buffer
                         ld bc, BufferLen
 FindFrame:              ld a, $C0
@@ -169,11 +175,23 @@ Opcode equ $+1:         cp SMC                          ; Is expected Op?
                         inc hl
                         dec bc
                         ld d, (hl)                      ; Read length word
-                        for n = 1 to 4
-                          inc hl                        ; Skip 4 bytes of data (for now)
-                          dec bc                        ; (maybe we will save a pointer to this later)
-                        next
-                        add hl, de                      ; Skip <length> bytes of value (for now)
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read value byte 1
+ValWordAddr1 equ $+1:   ld (SMC), a                     ; Save value byte 1
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read value byte 2
+ValWordAddr2 equ $+1:   ld (SMC), a                     ; Save value byte 2
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read value byte 3
+ValWordAddr3 equ $+1:   ld (SMC), a                     ; Save value byte 3
+                        inc hl
+                        dec bc
+                        ld a, (hl)                      ; Read value byte 4
+ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
+                        add hl, de                      ; Skip <length> bytes of data (for now)
                         push hl                         ; (maybe we will save a pointer to this later)
                         ld hl, bc
                         or a
@@ -185,7 +203,6 @@ Opcode equ $+1:         cp SMC                          ; Is expected Op?
                         ld a, (hl)                      ; Read SLIP frame end
                         cp $C0                          ; Is expected frame marker?
                         jp nz, FindFrame                ; If not, find next frame marker
-
                         or a                            ; Clear carry for success,
                         ret                             ; and return
 Fail:                   scf                             ; Set carry for error,

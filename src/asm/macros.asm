@@ -48,9 +48,19 @@ Rst8                    macro(Command)
                         db Command
 mend
 
-ESPSendBytes            macro(BufferStart, BufferLen)
+ESPSendBytes            macro(BufferStart, BufferLength)
                         ld hl, BufferStart
-                        ld de, BufferLen
+                        ld de, BufferLength
+                        call ESPSendBytesProc
+mend
+
+ESPReadReg              macro(Addr32)
+                        ld hl, Addr32 and $FFFF
+                        ld (SLIP.ReadRegAddr), hl
+                        ld hl, Addr32 >> 16
+                        ld (SLIP.ReadRegAddr+2), hl
+                        ld hl, SLIP.ReadReg
+                        ld de, SLIP.ReadRegLen
                         call ESPSendBytesProc
 mend
 
@@ -79,9 +89,9 @@ FillLDIR                macro(SourceAddr, Size, Value)
                         ldir
 mend
 
-ValidateCmd             macro(Op)
+ValidateCmd             macro(Op, ValWordAddr)
                         ld a, Op
-                        ld (ValidateCmdProc.Opcode), a
+                        ld hl, ValWordAddr
                         call ValidateCmdProc
 mend
 
@@ -90,5 +100,11 @@ ErrorIfCarry            macro(ErrAddr)
                         ld hl, ErrAddr
                         jp ErrorProc
 Continue:
+mend
+
+PrintBufferHex          macro(Addr, Len)
+                        ld hl, Addr
+                        ld de, Len
+                        call PrintBufferHexProc
 mend
 

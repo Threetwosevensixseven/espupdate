@@ -12,7 +12,8 @@ Msg                     proc
   ESPProg4:             db "Setting GPIO0 low", CR, 0
   ESPProg5:             db "Setting RST high", CR, 0
   ESPProg6:             db "Setting GPIO0 high", CR, 0
-  ESPProg7:             db "Reading UART buffer...", CR, CR, 0
+  ESPProg7:             db "Disabling GPIO0 output", CR, 0
+  ESPProg8:             db "Reading UART buffer...", CR, CR, 0
   SyncOK:               db "Sync OK", CR, 0
   Fuse1:                db "Reading eFuses...", CR, CR, 0
 pend
@@ -90,6 +91,24 @@ PrintChar               proc
                         ret
 NotPrintable:           ld a, '.'
                         rst 16
+                        ret
+pend
+
+PrintBufferHexProc      proc                            ; hl = Addr, de = Length
+                        ld a, (hl)
+                        call PrintAHex
+                        inc hl
+                        dec de
+                        ld a, d
+                        or e
+                        jr nz, PrintBufferHexProc
+                        ret
+pend
+
+Wait5Frames             proc
+                        for n = 1 to 5
+                          halt
+                        next
                         ret
 pend
 
