@@ -1,8 +1,8 @@
 ; esp.asm
 
 SLIP                    proc
-  Sync:                 db $C0                          ; SLIP Frame start
-                        db $00                          ; Header
+  Sync:                 db $C0                          ; SLIP Frame start - timeout 5
+                        db $00                          ; Request
                         db $08                          ; ESP_SYNC command op
                         dw 36                           ; Payload length word
                         dl 0                            ; Checksum long word
@@ -10,6 +10,14 @@ SLIP                    proc
                         ds 32, $55                      ; Payload part 2
                         db $C0                          ; SLIP Frame end
   SyncLen               equ $-Sync
+
+  ReadReg:              db $C0, $00                     ; Frame, request - timeout 3
+                        db $0A                          ; ESP_READ_REG command op
+                        dw 4                            ; Length 4 (of register address)
+                        dl 0                            ; Checksum
+  ReadRegAddr:          dl 0x3ff0005c                   ; Register address SMC (4 bytes)
+                        db $C0                          ; SLIP Frame end
+  ReadRegLen            equ $-ReadReg
 pend
 
 ESPSendBytesProc        proc                            ; hl = Buffer, de = Length

@@ -67,7 +67,19 @@ SyncLoop:               push bc
                         ValidateCmd($08)                ; Check whether this we got a sync response
                         ErrorIfCarry(Err.NoSync)
                         PrintMsg(Msg.SyncOK)
-                        call ESPFlush                   ; Clear remaining UART buffer
+
+ReadEfuses:
+                        PrintMsg(Msg.Fuse1)
+                        WaitFrames(5)
+                        call ESPFlush
+                        WaitFrames(5)
+                        call ESPFlush                   ; Clear UART buffer
+                        WaitFrames(5)
+                        ESPSendBytes(SLIP.ReadReg, SLIP.ReadRegLen) ; Send the command
+                        WaitFrames(5)
+                        call ESPRead                    ; val = 6291860 or 0x00600194
+                        WaitFrames(5)
+                        call ESPFlush
 
                         zeusprinthex "Buffer: ",Buffer
                         Freeze(1,2)

@@ -14,6 +14,7 @@ Msg                     proc
   ESPProg6:             db "Setting GPIO0 high", CR, 0
   ESPProg7:             db "Reading UART buffer...", CR, CR, 0
   SyncOK:               db "Sync OK", CR, 0
+  Fuse1:                db "Reading eFuses...", CR, CR, 0
 pend
 
 Err                     proc
