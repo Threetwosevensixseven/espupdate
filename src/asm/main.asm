@@ -253,8 +253,27 @@ PrintMAC:
                         rst 16
                         ld a, (OUI6)
                         call PrintAHexNoSpace
+                        ld a, 13
+                        rst 16
+UploadStub:
+                        PrintMsg(Msg.Stub1)
+                        // These are the value for uploading the stub:
+                        //
+                        // text_start  = 0x4010E000
+                        // text_length = 0x1F60
+                        // text_blocks = 2
+                        // text_block_0_from_offs = 0x0000
+                        // text_block_0_to_offs   = 0x1800
+                        // text_block_1_from_offs = 0x1800
+                        // text_block_1_to_offs   = 0x3000
+                        //
+                        // data_start  = 0x3FFFABA4
+                        // data_length = 0x0300
+                        // data_blocks = 1
+                        // data_block_0_from_offs = 0x0000
+                        // data_block_0_to_offs   = 0x1800
 
-                        zeusprinthex "Buffer: ",Buffer
+                        zeusprinthex "Buffer: ", Buffer
                         zeusprinthex "eFuses: ", eFuses
                         zeusprinthex "MAC: ", MAC
                         Freeze(1,2)
@@ -265,16 +284,25 @@ PrintMAC:
                         include "esxDOS.asm"            ; ESXDOS routines
                         include "msg.asm"               ; Messaging and error routines
                         include "vars.asm"              ; Global variables
+                                                        ; Everything after this is padded to the next 8K
+                                                        ; but assembles at $8000
+                        include "stub.asm"              ; ESP upload stub
 
-Length equ $-Start
-zeusprinthex "Command size: ", Length
+UpperCodeLen equ $-UpperCodeStart
+Length       equ $-Start
+zeusprinthex "Lower code: ", LowerCodeStart, LowerCodeLen
+zeusprinthex "Upper code: ", UpperCodeStart, UpperCodeLen
+zeusprinthex "Cmd size:   ", Length
 
 if zeusver >= 74
   zeuserror "Does not run on Zeus v4.00 (TEST ONLY) or above, Get v3.991 available at http://www.desdes.com/products/oldfiles/zeus.exe"
 endif
 
-if (Length > $2000)
-  zeuserror "DOT command is too large to assemble!"
+if (LowerCodeLen > $2000)
+  zeuserror "DOT command (lower code) is too large to assemble!"
+endif
+if (UpperCodeLen > $4000)
+  zeuserror "DOT command (upper code) is too large to assemble!"
 endif
 
 output_bin "..\\..\\dot\\ESPUPDATE", Start, Length

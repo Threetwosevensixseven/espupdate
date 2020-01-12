@@ -41,3 +41,13 @@ nextreg 169, %101 ; set GPIO0 high
 
 is_8285 = (efuses & ((1 << 4) | 1 << 80)) != 0  # One or the other efuse bit is set for ESP8285
 return "ESP8285" if is_8285 else "ESP8266EX"
+
+How to save the stub, which is a dict of bytes as a binary file in python:
+f = open('ESP8266_stub_text.bin', 'w+b')
+binary_format = bytearray(stub["text"])
+f.write(binary_format)
+f.close()
+f = open('ESP8266_stub_data.bin', 'w+b')
+binary_format = bytearray(stub["data"])
+f.write(binary_format)
+f.close()

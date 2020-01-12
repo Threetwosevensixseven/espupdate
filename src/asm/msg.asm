@@ -7,21 +7,22 @@ Msg                     proc
   SendSync:             db "Syncing...", CR, 0
   RcvSync:              db "Receiving sync", CR, 0
   ESPProg1:             db CR, "Setting ESP programming mode...", CR, 0
-  ESPProg2:             db "Enabling GPIO0 output", CR, 0
-  ESPProg3:             db "Setting RST low", CR, 0
-  ESPProg4:             db "Setting GPIO0 low", CR, 0
-  ESPProg5:             db "Setting RST high", CR, 0
-  ESPProg6:             db "Setting GPIO0 high", CR, 0
-  ESPProg7:             db "Disabling GPIO0 output", CR, 0
-  ESPProg8:             db "Reading UART buffer...", CR, CR, 0
+  //ESPProg2:           db "Enabling GPIO0 output", CR, 0
+  //ESPProg3:           db "Setting RST low", CR, 0
+  //ESPProg4:           db "Setting GPIO0 low", CR, 0
+  //ESPProg5:           db "Setting RST high", CR, 0
+  //ESPProg6:           db "Setting GPIO0 high", CR, 0
+  //ESPProg7:           db "Disabling GPIO0 output", CR, 0
+  //ESPProg8:           db "Reading UART buffer...", CR, CR, 0
   SyncOK:               db "Sync OK", CR, 0
-  Fuse1:                db "Reading eFuses...", CR, 0
+  //Fuse1:              db "Reading eFuses...", CR, 0
   ESP8266EX:            db "Chip is ESP8266EX", CR, 0
   ESP8285:              db "Chip is ESP8285", CR, 0
   FWiFi:                db "Features: WiFi", CR, 0
   FFLash:               db "          Embedded Flash", CR, 0
-  MAC1:                 db "Reading MAC...", CR, 0
+  //MAC1:               db "Reading MAC...", CR, 0
   MAC2:                 db "MAC: ", 0
+  Stub1:                db "Uploading stub...", CR, 0
 pend
 
 Err                     proc
