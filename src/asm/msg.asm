@@ -28,6 +28,8 @@ pend
 Err                     proc
   NoSync:               db "Sync failur", 'e'|128
   UnknownOUI:           db "Unknown OUI erro", 'r'|128
+  NoMem:                db "Out of memor", 'y'|128
+  BadDot:               db "Error reading dot comman", 'd'|128
 pend
 
 PrintRst16              proc

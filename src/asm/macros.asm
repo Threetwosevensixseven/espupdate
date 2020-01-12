@@ -95,6 +95,11 @@ ValidateCmd             macro(Op, ValWordAddr)
                         call ValidateCmdProc
 mend
 
+ErrorAlways             macro(ErrAddr)
+                        ld hl, ErrAddr
+                        jp ErrorProc
+mend
+
 ErrorIfCarry            macro(ErrAddr)
                         jp nc, Continue
                         ld hl, ErrAddr
@@ -102,14 +107,29 @@ ErrorIfCarry            macro(ErrAddr)
 Continue:
 mend
 
-ErrorAlways             macro(ErrAddr)
+ErrorIfNoCarry          macro(ErrAddr)
+                        jp c, Continue
                         ld hl, ErrAddr
                         jp ErrorProc
+Continue:
 mend
 
 PrintBufferHex          macro(Addr, Len)
                         ld hl, Addr
                         ld de, Len
                         call PrintBufferHexProc
+mend
+
+Page16kZXBank           macro(Bank, ReEnableInterrupts)
+                        ld a, ($5B5C)                   ; Previous value of port
+                        and $F8
+                        or Bank                         ; Select bank
+                        ld bc, 0x7ffd
+                        di
+                        ld ($5B5C), a
+                        out (c), a
+                        if (ReEnableInterrupts)
+                          ei
+                        endif
 mend
 

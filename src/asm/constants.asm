@@ -11,6 +11,9 @@ ESP_OTP_MAC3            equ 0x3ff0005c
 ; esxDOS
 M_ERRH                  equ $95
 
+; NextZXOS
+IDE_BANK                equ $01BD
+
 ; UART
 UART_RxD                equ $143B                       ; Also used to set the baudrate
 UART_TxD                equ $133B                       ; Also reads status

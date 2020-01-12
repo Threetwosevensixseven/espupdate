@@ -1,8 +1,15 @@
 ; vars.asm
 
+; Memory management
+BankUpper1:             db $FF                          ; $FF means not yet allocated
+BankUpper2:             db $FF                          ; $FF means not yet allocated
+
+; UART
 Buffer:                 ds 1024
 BufferLen               equ $-Buffer
 Dummy32:                ds 4
+
+; ESP
 eFuses:
 eFuse1:                 ds 4
 eFuse2:                 ds 4

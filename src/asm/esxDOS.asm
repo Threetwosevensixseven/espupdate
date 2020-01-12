@@ -5,6 +5,7 @@
 esxDOS proc
 
 M_GETSETDRV             equ $89
+M_P3DOS                 equ $94
 F_OPEN                  equ $9a
 F_CLOSE                 equ $9b
 F_READ                  equ $9d
