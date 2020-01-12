@@ -1,8 +1,7 @@
 ; vars.asm
 
-; Memory management
-BankUpper1:             db $FF                          ; $FF means not yet allocated
-BankUpper2:             db $FF                          ; $FF means not yet allocated
+; Application
+SavedArgs:              dw 0
 
 ; UART
 Buffer:                 ds 1024

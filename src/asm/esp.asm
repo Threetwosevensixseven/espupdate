@@ -210,8 +210,18 @@ Fail:                   scf                             ; Set carry for error,
 pend
 
 ErrorProc               proc
-                        call PrintRst16Error
-Stop:                   Border(2)
-                        jr Stop
+                        //call PrintRst16Error
+//Stop:                   //Border(2)
+                        //jr Stop
+                        if enabled ErrDebug
+                          call PrintRst16Error
+Stop:                     Border(2)
+                          jr Stop
+                        else
+                          push hl                       ; If we want to print the error at the top of the screen,
+                          call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
+                          pop hl                        ; then uncomment this code.
+                          jp Return.WithCustomError     ; Straight to the error handing exit routine
+                        endif
 pend
 

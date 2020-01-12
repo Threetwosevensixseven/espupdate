@@ -2,6 +2,7 @@
 
 ; Application
 ResetWait               equ 5
+DisableScroll           equ false
 
 ; ESP
 ESP_OTP_MAC0            equ 0x3ff00050
@@ -31,6 +32,7 @@ pend
 ; Registers
 Reg                     proc
   MachineID             equ $00
+  Peripheral2           equ $06
   CPUSpeed              equ $07
 pend
 
@@ -52,6 +54,7 @@ FRAMES                  equ 23672                       ; Frame counter
 BORDCR                  equ 23624                       ; Border colour system variable
 ULA_PORT                equ $FE                         ; out (254), a
 STIMEOUT                equ $5C81                       ; Screensaver control sysvar
+SCR_CT                  equ $5C8C                       ; Scroll counter sysvar
 
 ; Font
 FWSpace                 equ 2

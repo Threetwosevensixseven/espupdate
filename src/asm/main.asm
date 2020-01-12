@@ -8,9 +8,40 @@ RealESP optionbool 80, -15, "Real ESP", true            ; Launch CSpect with phy
 UploadNext optionbool 160, -15, "Next", false           ; Copy dot command to Next FlashAir card
 ErrDebug optionbool 212, -15, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
 
-org $2000                                               ; Dot commands always start at $2000.
+org $2000                                               ; Dot commands always start at $2000
 Start:
-                        PrintMsg(Msg.Startup)
+                        di                              ; We run with interrupts off apart from printing and halts
+                        ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
+                        ld (SavedArgs), hl              ; Save args for later
+                        call InstallErrorHandler        ; Handle scroll errors during printing and API calls
+                        PrintMsg(Msg.Startup)         ; "ESP Update Tool v1.x"
+
+                        ld a, %0000 0001                ; Test for Next courtesy of Simon N Goodwin, thanks :)
+                        MirrorA()                       ; Z80N-only opcode. If standard Z80 or successors, this will
+                        nop                             ; be executed as benign opcodes that don't affect the A register.
+                        nop
+                        cp %1000 0000                   ; Test that the bits of A were mirrored as expected
+                        ld hl, Err.NotNext              ; If not a Spectrum Next,
+                        jp nz, Return.WithCustomError   ; exit with an error.
+
+                        NextRegRead(Reg.MachineID)      ; If we passed that test we are safe to read machine ID.
+                        cp 10                           ; 10 = ZX Spectrum Next
+                        jp z, IsANext                   ;  8 = Emulator
+                        cp 8                            ; Exit with error if not a Next. HL still points to err message,
+                        jp nz, Return.WithCustomError   ; be careful if adding code between the Next check and here!
+IsANext:
+                        NextRegRead(Reg.Peripheral2)    ; Read Peripheral 2 register.
+                        ld (RestoreF8.Saved), a         ; Save current value so it can be restored on exit.
+                        and %0111 1111                  ; Clear the F8 enable bit,
+                        nextreg Reg.Peripheral2, a      ; And write the entire value back to the register.
+
+                        NextRegRead(Reg.CPUSpeed)       ; Read CPU speed.
+                        and %11                         ; Mask out everything but the current desired speed.
+                        ld (RestoreSpeed.Saved), a      ; Save current speed so it can be restored on exit.
+                        nextreg Reg.CPUSpeed, %11       ; Set current desired speed to 28MHz.
+
+                        //PrintMsg(Msg.Scroll)
+                        //Freeze(1,5)
 
                         ; This dot command is way larger than 8KB, so we have a strategy for dealing with that.
                         ; NextZXOS will automatically load the first 8KB, which contains all the core code,
@@ -25,37 +56,19 @@ Start:
                         ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate two 8KB
                         ; banks, which must be freed before exiting the dot command.
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (BankUpper1), a              ; Save bank number
+                        ld (DeallocateBanks.Upper1), a  ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (BankUpper2), a              ; Save bank number
+                        ld (DeallocateBanks.Upper2), a  ; Save bank number
 
                         ; Now we can page in the the two 8K banks at $8000 and $A000, and try to load the
                         ; remainder of the dot command code. This paging will need to be undone during cmd exit.
                         nextreg $55, a                  ; Allocated bank for $A000 was already in A, page it in.
-                        ld a, (BankUpper1)
+                        ld a, (DeallocateBanks.Upper1)
                         nextreg $54, a                  ; Page in allocated bank for $8000
                         ld hl, $8000                    ; Start loading at $8000
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
-
-                        //ld l, 0                       ; 0 - from start of file
-                        //ld bc, 0                      ; BCDE = bytes to seek
-                        //ld de, 0
-                        //call esxDOS.fSeek
-
-                        //CSBreak()
-
-                        //ld hl, $C000
-                        //ld bc, $2000
-                        //call esxDOS.fRead
-
-                        //call ESPSendTestBytes
-                        //Freeze(1,4)
-
-                        //CSBreak()
-
-
 EnableProgMode:
                         PrintMsg(Msg.ESPProg1)          ; "Setting ESP programming mode..."
 
@@ -102,6 +115,7 @@ SyncLoop:               push bc
                         //PrintMsg(Msg.RcvSync)
                         call ESPReadIntoBuffer
                         ValidateCmd($08, Dummy32)       ; Check whether this we got a sync response
+//TestError:            scf                           ; You can use this forced error to test how errors are handled
                         ErrorIfCarry(Err.NoSync)
                         PrintMsg(Msg.SyncOK)
 
@@ -302,7 +316,17 @@ UploadStub:
                         zeusprinthex "Buffer: ", Buffer
                         zeusprinthex "eFuses: ", eFuses
                         zeusprinthex "MAC: ", MAC
+
+                        ; This is a temporary testing point that indicates we have have reached
+                        ; The "success" point, and does a red/blue border effect instead of
+                        ; actually exiting cleanly to BASIC.
                         Freeze(1,2)
+
+                        ; This is the official "success" exit point of the program which restores
+                        ; all the settings and exits to BASIC cleanly.
+                        ; TODO: deallocate banks on both success and error exits.
+                        //PrintMsg(Msg.Success)
+                        //jp Return.ToBasic
 
                         include "constants.asm"         ; Global constants
                         include "macros.asm"            ; Zeus macros
@@ -315,8 +339,10 @@ UploadStub:
                                                         ; but assembles at $8000
                         include "stub.asm"              ; ESP upload stub
 
+                        db $55, $AA, $55                ; Magic bytes to check we included the correct amount of data
+
 UpperCodeLen equ $-UpperCodeStart
-Length       equ $-Start
+Length       equ $-Start-$4000                          ; This adjust for the displacement of the upper code bank
 zeusprinthex "Lower code: ", LowerCodeStart, LowerCodeLen
 zeusprinthex "Upper code: ", UpperCodeStart, UpperCodeLen
 zeusprinthex "Cmd size:   ", Length

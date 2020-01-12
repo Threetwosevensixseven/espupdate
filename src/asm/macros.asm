@@ -133,3 +133,8 @@ Page16kZXBank           macro(Bank, ReEnableInterrupts)
                         endif
 mend
 
+MirrorA                 macro()
+                        noflow
+                        db $ED, $24
+mend
+

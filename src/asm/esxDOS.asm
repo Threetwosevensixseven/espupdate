@@ -6,21 +6,22 @@ esxDOS proc
 
 M_GETSETDRV             equ $89
 M_P3DOS                 equ $94
-F_OPEN                  equ $9a
-F_CLOSE                 equ $9b
-F_READ                  equ $9d
-F_WRITE                 equ $9e
-F_SEEK                  equ $9f
-F_GET_DIR               equ $a8
-F_SET_DIR               equ $a9
-F_SYNC                  equ $9c
+M_GETHANDLE             equ $8D
+M_GETDATE               equ $8E
+M_ERRH                  equ $95
+
+F_OPEN                  equ $9A
+F_CLOSE                 equ $9B
+F_SYNC                  equ $9C
+F_READ                  equ $9D
+F_WRITE                 equ $9E
+F_SEEK                  equ $9F
+F_GET_DIR               equ $A8
+F_SET_DIR               equ $A9
 
 FA_READ                 equ $01
 FA_APPEND               equ $06
 FA_OVERWRITE            equ $0C
-
-M_GETHANDLE             equ $8D
-M_GETDATE               equ $8E
 
 esx_seek_set            equ $00         ; set the fileposition to BCDE
 esx_seek_fwd            equ $01         ; add BCDE to the fileposition

@@ -3,10 +3,11 @@
 Msg                     proc
   Startup:              db "ESP Update Tool v1."
                         BuildNo()
-                        db CR, 0
+                        //db CR, CR, "Loading..."
+                        db CR, CR, 0
   SendSync:             db "Syncing...", CR, 0
   RcvSync:              db "Receiving sync", CR, 0
-  ESPProg1:             db CR, "Setting ESP programming mode...", CR, 0
+  ESPProg1:             db "Setting ESP programming mode...", CR, 0
   //ESPProg2:           db "Enabling GPIO0 output", CR, 0
   //ESPProg3:           db "Setting RST low", CR, 0
   //ESPProg4:           db "Setting GPIO0 low", CR, 0
@@ -23,18 +24,33 @@ Msg                     proc
   //MAC1:               db "Reading MAC...", CR, 0
   MAC2:                 db "MAC: ", 0
   Stub1:                db "Uploading stub...", CR, 0
+  Scroll:               db "Testing scroll", CR, CR, CR, CR, CR, CR, CR, CR, CR
+                        db CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR
+                        db "Last line", CR, 0
+  Speed1:               db "Restoring speed to ", 0
+  Speed35:              db "3.5MHz", 0
+  Speed07:              db "7MHz", 0
+  Speed14:              db "14MHz", 0
+  Speed28:              db "28MHz", 0
+  Speed2:               db "(0x", 0
+  Success:              db "ESP updated successfully!", CR, 0
 pend
 
 Err                     proc
-  NoSync:               db "Sync failur", 'e'|128
-  UnknownOUI:           db "Unknown OUI erro", 'r'|128
-  NoMem:                db "Out of memor", 'y'|128
-  BadDot:               db "Error reading dot comman", 'd'|128
+                        ;  "<-Longest valid erro>", 'r'|128
+  Break:                db "D BREAK - CONT repeat", 's'|128
+  NotNext:              db "Spectrum Next require", 'd'|128
+  NoSync:               db "Sync failur",           'e'|128
+  UnknownOUI:           db "Unknown OUI erro",      'r'|128
+  NoMem:                db "Out of memor",          'y'|128
+  BadDot:               db "Error reading dot cm",  'd'|128
 pend
 
 PrintRst16              proc
-                        ld a, 24                        ; Set upper screen to not scroll
-                        ld (23692), a                   ; for another 24 rows of printing
+                        if DisableScroll
+                          ld a, 24                      ; Set upper screen to not scroll
+                          ld (SCR_CT), a                ; for another 24 rows of printing
+                        endif
                         ei
 Loop:                   ld a, (hl)
                         inc hl
@@ -60,14 +76,18 @@ Return:                 di
                         ret
 LastChar                and %0 1111111
                         rst 16
-                        jr Return
+                        ld a, CR                        ; The error message doesn't include a trailing CR in the
+                        rst 16                          ; definition, so we want to add one when we print it
+                        jr Return                       ; in the upper screen.
 pend
 
 PrintAHex               proc
                         ld b, a
-                        ld a, 24                        ; Set upper screen to not scroll
-                        ld (23692), a                   ; for another 24 rows of printing
-                        ld a, b
+                        if DisableScroll
+                          ld a, 24                      ; Set upper screen to not scroll
+                          ld (SCR_CT), a                ; for another 24 rows of printing
+                          ld a, b
+                        endif
                         and $F0
                         swapnib
                         call Print
@@ -90,9 +110,11 @@ pend
 
 PrintAHexNoSpace        proc
                         ld b, a
-                        ld a, 24                        ; Set upper screen to not scroll
-                        ld (23692), a                   ; for another 24 rows of printing
-                        ld a, b
+                        if DisableScroll
+                          ld a, 24                      ; Set upper screen to not scroll
+                          ld (SCR_CT), a                ; for another 24 rows of printing
+                          ld a, b
+                        endif
                         and $F0
                         swapnib
                         call Print
@@ -111,9 +133,11 @@ pend
 
 PrintChar               proc
                         ld b, a
-                        ld a, 24                        ; Set upper screen to not scroll
-                        ld (23692), a                   ; for another 24 rows of printing
-                        ld a, b
+                        if DisableScroll
+                          ld a, 24                      ; Set upper screen to not scroll
+                          ld (SCR_CT), a                ; for another 24 rows of printing
+                          ld a, b
+                        endif
                         cp 32
                         jr c, NotPrintable
                         cp 127
