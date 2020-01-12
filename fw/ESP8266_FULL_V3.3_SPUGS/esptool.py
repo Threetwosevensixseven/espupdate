@@ -979,6 +979,7 @@ class ESP8266ROM(ESPLoader):
         mac0 = self.read_reg(self.ESP_OTP_MAC0)
         mac1 = self.read_reg(self.ESP_OTP_MAC1)
         mac3 = self.read_reg(self.ESP_OTP_MAC3)
+        scn2 = ((mac1 >> 16) & 0xff)
         if (mac3 != 0):
             oui = ((mac3 >> 16) & 0xff, (mac3 >> 8) & 0xff, mac3 & 0xff)
         elif ((mac1 >> 16) & 0xff) == 0:
@@ -987,6 +988,7 @@ class ESP8266ROM(ESPLoader):
             oui = (0xac, 0xd0, 0x74)
         else:
             raise FatalError("Unknown OUI")
+        finalmac =  oui + ((mac1 >> 8) & 0xff, mac1 & 0xff, (mac0 >> 24) & 0xff)
         return oui + ((mac1 >> 8) & 0xff, mac1 & 0xff, (mac0 >> 24) & 0xff)
 
     def get_erase_size(self, offset, size):

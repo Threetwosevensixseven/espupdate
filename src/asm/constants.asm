@@ -3,6 +3,11 @@
 ; Application
 ResetWait               equ 5
 
+; ESP
+ESP_OTP_MAC0            equ 0x3ff00050
+ESP_OTP_MAC1            equ 0x3ff00054
+ESP_OTP_MAC3            equ 0x3ff0005c
+
 ; esxDOS
 M_ERRH                  equ $95
 

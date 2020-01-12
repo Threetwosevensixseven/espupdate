@@ -102,6 +102,11 @@ ErrorIfCarry            macro(ErrAddr)
 Continue:
 mend
 
+ErrorAlways             macro(ErrAddr)
+                        ld hl, ErrAddr
+                        jp ErrorProc
+mend
+
 PrintBufferHex          macro(Addr, Len)
                         ld hl, Addr
                         ld de, Len

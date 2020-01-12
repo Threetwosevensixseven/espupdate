@@ -1,5 +1,5 @@
 C0 = SLIP frame start/end
-00 = Command Prefix (B1)
+00 = Request (B1)
 08 = Op (B1)
 2400 = Payload length (36 dec) (H2)
 00000000 = checksum (I4)
@@ -11,6 +11,17 @@ C0 = SLIP frame start/end
 B = unsigned char (1 byte)
 H = unsigned short (2 bytes)
 I = unsigned int (4 bytes)
+
+To validate a SLIP response:
+C0 = SLIP frame start/end
+01 = Response (B1)
+08 = Op (B1)
+0200 = Payload length (H2)
+07071220 = Value (I4)
+0000 = <Length> bytes
+C0 = SLIP frame start/end
+If invalid, search for next C0 and try again
+After validating, discard rest of buffer
 
 pull down RST pin
 pull down GPIO0 pin
@@ -27,3 +38,6 @@ nextreg 2, 128 ; set RST low
 nextreg 169, %100 ; set GPIO0 low                                 
 nextreg 2, 0 ; set RST high                                        
 nextreg 169, %101 ; set GPIO0 high
+
+is_8285 = (efuses & ((1 << 4) | 1 << 80)) != 0  # One or the other efuse bit is set for ESP8285
+return "ESP8285" if is_8285 else "ESP8266EX"

@@ -81,7 +81,7 @@ SyncLoop:               push bc
                         PrintMsg(Msg.SyncOK)
 
 ReadEfuses:
-                        PrintMsg(Msg.Fuse1)
+                        //PrintMsg(Msg.Fuse1)           ; "Reading eFuses..."
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
                         call Wait5Frames
@@ -146,8 +146,117 @@ CheckFeatures:
 NoEmbFlash:             xor a
 EndFeatures:            ld (Features.EmbFlash), a
 
+ReadMAC:
+                        //PrintMsg(Msg.MAC1)            ; "Reading MAC..."
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(ESP_OTP_MAC0)        ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, MAC0)          ; val = 0x5A240000 (on test ESP)
+
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(ESP_OTP_MAC1)        ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, MAC1)          ; val = 0x020021E8 (on test ESP)
+
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ESPReadReg(ESP_OTP_MAC3)        ; Read this address
+                        call Wait5Frames
+                        call ESPReadIntoBuffer
+                        ValidateCmd($0A, MAC3)          ; val = 0x00600194 (on test ESP)
+                        //PrintBufferHex(MAC0, 12)
+
+CalculateMAC:
+                        // There are three alternative MAC scenarios. If not of them match, it is a fatal error.
+                        // Scenario 1: mac3 != 0
+                        // Scenario 2: ((mac1 >> 16) & 0xff) == 0
+                        // Scenario 3: ((mac1 >> 16) & 0xff) == 1
+                        // For each scenario, there is an interim calculation
+                        // The interim calculation is then used in the final calculation
+                        // Scenario 1: mac3 != 0
+                        ld hl, (MAC3)
+                        xor a
+                        or h
+                        or l
+                        ld hl, (MAC3+2)
+                        or h
+                        or l
+                        jp z, MACScenario2
+                        // Scenario 1 matches. The interim calculation is:
+                        // oui = ((mac3 >> 16) & 0xff, (mac3 >> 8) & 0xff, mac3 & 0xff)
+                        // val = tuple (0x60, 0x01, 0x94) on test ESP
+                        ld hl, (MAC3+1)
+                        ld (OUI1), hl
+                        ld a, (MAC3+3)
+                        ld (OUI3), a
+                        jr MacFinalCalc
+MACScenario2:           ld a, (MAC1+1)
+                        or a
+                        jr z, MACIsScenario2
+                        cp 1
+                        jr z, MACScenario3
+                        ErrorAlways(Err.UnknownOUI)
+MACIsScenario2:
+                        // Scenario 2 matches. The interim calculation is:
+                        // oui = tuple (0x18, 0xF3, 0x34) hardcoded
+                        ld hl, $F318
+                        ld (OUI1), hl
+                        ld a, $34
+                        ld (OUI3), a
+                        jr MacFinalCalc
+MACScenario3:
+                        // Scenario 3 matches. The interim calculation is:
+                        // oui = tuple (0xAC, 0xD0, 0x74) hardcoded
+                        ld hl, $D0AC
+                        ld (OUI1), hl
+                        ld a, $74
+                        ld (OUI3), a                    ; Fall into final calculation
+MacFinalCalc:
+                        // MAC final calculation is:
+                        // MAC = oui + ((mac1 >> 8) & 0xff, mac1 & 0xff, (mac0 >> 24) & 0xff)
+                        // The first three bytes are the precalculated OUI
+                        // The second three bytes are defived from mac1 and mac0
+                        // MAC = tuple (0x18, 0xF3, 0x34, 0x21, 0xE8, 0x5A) on test ESP
+                        // formatted MAC is 60:01:94:21:E8:5A on test ESP
+                        ld hl, (MAC1+2)
+                        ld (OUI4), hl
+                        ld a, (MAC0)
+                        ld (OUI6), a
+PrintMAC:
+                        PrintMsg(Msg.MAC2)
+                        ld a, (OUI1)
+                        call PrintAHexNoSpace
+                        ld a, ':'
+                        rst 16
+                        ld a, (OUI2)
+                        call PrintAHexNoSpace
+                        ld a, ':'
+                        rst 16
+                        ld a, (OUI3)
+                        call PrintAHexNoSpace
+                        ld a, ':'
+                        rst 16
+                        ld a, (OUI4)
+                        call PrintAHexNoSpace
+                        ld a, ':'
+                        rst 16
+                        ld a, (OUI5)
+                        call PrintAHexNoSpace
+                        ld a, ':'
+                        rst 16
+                        ld a, (OUI6)
+                        call PrintAHexNoSpace
+
                         zeusprinthex "Buffer: ",Buffer
                         zeusprinthex "eFuses: ", eFuses
+                        zeusprinthex "MAC: ", MAC
                         Freeze(1,2)
 
                         include "constants.asm"         ; Global constants

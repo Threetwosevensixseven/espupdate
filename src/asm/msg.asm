@@ -20,10 +20,13 @@ Msg                     proc
   ESP8285:              db "Chip is ESP8285", CR, 0
   FWiFi:                db "Features: WiFi", CR, 0
   FFLash:               db "          Embedded Flash", CR, 0
+  MAC1:                 db "Reading MAC...", CR, 0
+  MAC2:                 db "MAC: ", 0
 pend
 
 Err                     proc
   NoSync:               db "Sync failur", 'e'|128
+  UnknownOUI:           db "Unknown OUI erro", 'r'|128
 pend
 
 PrintRst16              proc
@@ -72,6 +75,27 @@ PrintAHex               proc
                         rst 16
                         ld a, 32
                         rst 16
+                        ret
+Print:                  cp 10
+                        ld c, '0'
+                        jr c, Add
+                        ld c, 'A'-10
+Add:                    add a, c
+                        rst 16
+                        ret
+pend
+
+PrintAHexNoSpace        proc
+                        ld b, a
+                        ld a, 24                        ; Set upper screen to not scroll
+                        ld (23692), a                   ; for another 24 rows of printing
+                        ld a, b
+                        and $F0
+                        swapnib
+                        call Print
+                        ld a, b
+                        and $0F
+                        call Print
                         ret
 Print:                  cp 10
                         ld c, '0'
