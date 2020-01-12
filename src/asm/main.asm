@@ -317,16 +317,17 @@ UploadStub:
                         zeusprinthex "eFuses: ", eFuses
                         zeusprinthex "MAC: ", MAC
 
-                        ; This is a temporary testing point that indicates we have have reached
-                        ; The "success" point, and does a red/blue border effect instead of
-                        ; actually exiting cleanly to BASIC.
-                        Freeze(1,2)
-
-                        ; This is the official "success" exit point of the program which restores
-                        ; all the settings and exits to BASIC cleanly.
-                        ; TODO: deallocate banks on both success and error exits.
-                        //PrintMsg(Msg.Success)
-                        //jp Return.ToBasic
+                        if (ErrDebug)
+                          ; This is a temporary testing point that indicates we have have reached
+                          ; The "success" point, and does a red/blue border effect instead of
+                          ; actually exiting cleanly to BASIC.
+                          Freeze(1,2)
+                        else
+                          ; This is the official "success" exit point of the program which restores
+                          ; all the settings and exits to BASIC cleanly.
+                          PrintMsg(Msg.Success)
+                          jp Return.ToBasic
+                        endif
 
                         include "constants.asm"         ; Global constants
                         include "macros.asm"            ; Zeus macros
