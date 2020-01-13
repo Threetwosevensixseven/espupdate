@@ -18,7 +18,7 @@ Begin:                  di                              ; We run with interrupts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
                         ld (SavedArgs), hl              ; Save args for later
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls
-                        PrintMsg(Msg.Startup)         ; "ESP Update Tool v1.x"
+                        PrintMsg(Msg.Startup)           ; "ESP Update Tool v1.x"
 
                         ld a, %0000 0001                ; Test for Next courtesy of Simon N Goodwin, thanks :)
                         MirrorA()                       ; Z80N-only opcode. If standard Z80 or successors, this will
@@ -43,9 +43,6 @@ IsANext:
                         and %11                         ; Mask out everything but the current desired speed.
                         ld (RestoreSpeed.Saved), a      ; Save current speed so it can be restored on exit.
                         nextreg Reg.CPUSpeed, %11       ; Set current desired speed to 28MHz.
-
-                        //PrintMsg(Msg.Scroll)
-                        //Freeze(1,5)
 
                         ; This dot command is way larger than 8KB, so we have a strategy for dealing with that.
                         ; NextZXOS will automatically load the first 8KB, which contains all the core code,
@@ -317,7 +314,7 @@ UploadStub:
                         ; data_block_0_from_offs = 0x0000
                         ; data_block_0_to_offs   = 0x1800
 
-                        ; A: mem_begin(0x1F60, 2, 0x1800, 0x4010E000)
+                        ; A1: mem_begin(0x1F60, 2, 0x1800, 0x4010E000)
                         ; self.command(op, data, chk, timeout=timeout)
                         ;   op      = 5
                         ;   data    = 16 bytes (see below)
@@ -329,7 +326,9 @@ UploadStub:
                         ;   blocksize = 0x00001800 (UInt32)
                         ;   offset    = 0x4010E000 (UInt32)
                         ;   Ignore what the PyCharm debugger says - it is showing 14 bytes instead of 16 :(
+
                         ESPSendCmdWithData(ESP_MEM_BEGIN, SLIP.Stub1, SLIP.Stub1Len, Err.StubUpload)
+
                         ; This should send:
                         ; c0 00 05 10 00 00 00 00 00 60 1f 00 00 02 00 00
                         ; 00 00 18 00 00 00 e0 10 40 c0
@@ -340,7 +339,31 @@ UploadStub:
                         ; If failure, the first byte will be non-zero and the second byte will be the reason code
                         ; (The data could be more than two..four bytes if the command was md5sum)
 
+                        ; A2: mem_block(stub[field][from_offs:to_offs], seq)
+                        ; which equates to:
+                        ; mem_block(text[0:0x1800], 0)
+                        ; which equates to:
+                        ; command(ESP_MEM_DATA, data1, chk, timeout)
+                        ; where:
+                        ;   ESP_MEM_DATA = 0x07
+                        ;   data1        = 0x1810 bytes, comprising:
+                        ;     len(data)  = 0x00001800
+                        ;     seq        = 0x00000000 (block number)
+                        ;     unk1       = 0x00000000
+                        ;     unk2       = 0x00000000
+                        ;     data       = text[0:0x1800] (0x1800 bytes)
+                        ;   chk          = 0xED (ESP_CHECKSUM_MAGIC XOR'd with every byte in data), where:
+                        ;                  ESP_CHECKSUM_MAGIC = 0xEF
+                        ;   timeout      = 0x03
 
+                        ESPSetDataBlockHeader(0x1810, 0)
+                        ESPSendCmdWithData(ESP_MEM_DATA, SLIP.DataBlock, SLIP.DataBlockLen, Err.StubUpload)
+
+                        ; TODO
+                        ; This by itself (without the 0x1800 bytes of data appended) gives a response error
+                        ; with reason code 5:
+                        ; c0 01 07 02 00 94 01 60 00 01 05 c0
+                        ; So the error message should be modified to include two hex bytes
 
 
                         //zeusprinthex "Buffer:     ", Buffer
@@ -368,7 +391,7 @@ UploadStub:
                         include "vars.asm"              ; Global variables
                                                         ; Everything after this is padded to the next 8K
                                                         ; but assembles at $8000
-                        include "stub.asm"              ; ESP upload stub
+                        include "stub.asm"              ; ESP upload stub and input buffer
 
                         db $55, $AA, $55                ; Magic bytes to check we included the correct amount of data
 

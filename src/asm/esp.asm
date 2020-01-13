@@ -30,7 +30,20 @@ SLIP                    proc
                         dl 0x00001800
                         dl 0x4010E000
   Stub1Len              equ $-Stub1                     ; Stub1 should be 16 bytes long
+  DataBlock:            dl 0x00000000
+                        dl 0x00000000
+                        dl 0x00000000
+                        dl 0x00000000
+  DataBlockLen          equ $-DataBlock                 ; DataBlock should be 16 bytes long
   LastErr:              ds 0
+pend
+
+ESPSetDataBlockHeaderProc proc
+                        ld (SLIP.DataBlock), hl
+                        ld (SLIP.DataBlock+2), de
+                        ld (SLIP.DataBlock+4), bc
+                        ld (SLIP.DataBlock+6), ix
+                        ret
 pend
 
 ESPSendBytesProc        proc                            ; hl = Buffer, de = Length

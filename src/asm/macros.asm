@@ -146,3 +146,13 @@ ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
                         call ESPSendCmdWithDataProc
 mend
 
+ESPSetDataBlockHeader   macro(DataLength, Seq)
+                        ld hl, DataLength and $FFFF
+                        ld de, DataLength >> 16
+                        ld bc, Seq and $FFFF
+                        ld ix, Seq >> 16
+                        call ESPSetDataBlockHeaderProc
+mend
+
+
+

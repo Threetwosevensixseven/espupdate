@@ -5,8 +5,15 @@ Msg                     proc
                         BuildNo()
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   SendSync:             db "Syncing...", CR, 0
-  //RcvSync:              db "Receiving sync", CR, 0
   ESPProg1:             db "Setting ESP programming mode...", CR, 0
+  ESP8266EX:            db "Chip is ESP8266EX", CR, 0
+  ESP8285:              db "Chip is ESP8285", CR, 0
+  FWiFi:                db "Features: WiFi", CR, 0
+  FFLash:               db "          Embedded Flash", CR, 0
+  Success:              db "ESP updated successfully!", CR, 0
+  Stub1:                db "Uploading stub...", CR, 0
+  MAC2:                 db "MAC: ", 0
+  //RcvSync:            db "Receiving sync", CR, 0
   //ESPProg2:           db "Enabling GPIO0 output", CR, 0
   //ESPProg3:           db "Setting RST low", CR, 0
   //ESPProg4:           db "Setting GPIO0 low", CR, 0
@@ -14,15 +21,9 @@ Msg                     proc
   //ESPProg6:           db "Setting GPIO0 high", CR, 0
   //ESPProg7:           db "Disabling GPIO0 output", CR, 0
   //ESPProg8:           db "Reading UART buffer...", CR, CR, 0
-  //SyncOK:               db "Sync OK", CR, 0
+  //SyncOK:             db "Sync OK", CR, 0
   //Fuse1:              db "Reading eFuses...", CR, 0
-  ESP8266EX:            db "Chip is ESP8266EX", CR, 0
-  ESP8285:              db "Chip is ESP8285", CR, 0
-  FWiFi:                db "Features: WiFi", CR, 0
-  FFLash:               db "          Embedded Flash", CR, 0
   //MAC1:               db "Reading MAC...", CR, 0
-  MAC2:                 db "MAC: ", 0
-  Stub1:                db "Uploading stub...", CR, 0
   //Scroll:             db "Testing scroll", CR, CR, CR, CR, CR, CR, CR, CR, CR
   //                    db CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR
   //                    db "Last line", CR, 0
@@ -32,18 +33,18 @@ Msg                     proc
   //Speed14:            db "14MHz", 0
   //Speed28:            db "28MHz", 0
   //Speed2:             db "(0x", 0
-  Success:              db "ESP updated successfully!", CR, 0
 pend
 
 Err                     proc
                         ;  "<-Longest valid erro>", 'r'|128
   Break:                db "D BREAK - CONT repeat", 's'|128
+  NoMem:                db "4 Out of memor",        'y'|128
   NotNext:              db "Spectrum Next require", 'd'|128
   NoSync:               db "Sync error or no ES",   'P'|128
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
-  NoMem:                db "Out of memor",          'y'|128
   BadDot:               db "Error reading dot cm",  'd'|128
-  StubUpload:           db "Error uploading stu",   'b'|128
+  StubUpload:           db "Upload error (0xHH",    ')'|128
+  StubUploadHex         equ $-3
 pend
 
 PrintRst16              proc

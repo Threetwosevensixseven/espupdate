@@ -109,7 +109,7 @@ pend                                                    ;  with a>0 and carry cl
 
 Allocate8KBank          proc
                         ld hl, $0001                    ; H = $00: rc_banktype_zx, L = $01: rc_bank_alloc
-                        exx
+Internal:               exx
                         ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
                         ld de, IDE_BANK                 ; M_P3DOS takes care of stack safety stack for us
                         Rst8(esxDOS.M_P3DOS)            ; Make NextZXOS API call through esxDOS API with M_P3DOS
@@ -123,12 +123,7 @@ Deallocate8KBank        proc                            ; Takes bank to dealloca
                         ret z                           ; so return with carry clear (error) if that is the case
                         ld e, a                         ; Now move bank to deallocate into E for the API call
                         ld hl, $0003                    ; H = $00: rc_banktype_zx, L = $03: rc_bank_free
-                        exx
-                        ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
-                        ld de, IDE_BANK                 ; M_P3DOS takes care of stack safety stack for us
-                        Rst8(esxDOS.M_P3DOS)            ; Make NextZXOS API call through esxDOS API with M_P3DOS
-                        ErrorIfNoCarry(Err.NoMem)       ; Fatal error, exits dot command
-                        ret
+                        jr Allocate8KBank.Internal      ; Rest of deallocate is the same as the allocate routine
 pend
 
 Wait5Frames             proc

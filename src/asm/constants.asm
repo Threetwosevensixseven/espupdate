@@ -8,7 +8,9 @@ DisableScroll           equ false
 ESP_OTP_MAC0            equ 0x3ff00050
 ESP_OTP_MAC1            equ 0x3ff00054
 ESP_OTP_MAC3            equ 0x3ff0005c
-ESP_MEM_BEGIN           equ 5
+ESP_MEM_BEGIN           equ 0x05
+ESP_MEM_DATA            equ 0x07
+ESP_CHECKSUM_MAGIC      equ 0xef
 
 ; esxDOS
 M_ERRH                  equ $95
