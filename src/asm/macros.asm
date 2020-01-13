@@ -138,3 +138,12 @@ MirrorA                 macro()
                         db $ED, $24
 mend
 
+ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
+                        zeusprinthex "Test: ", DataAddr, DataLen
+                        ld a, Op
+                        ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later
+                        ld hl, DataLen                  ; This is faster being in hl because we copy to memory
+                        ld bc, ErrAddr                  ; This can be in bc because it's just as quick to pop hl later
+                        call ESPSendCmdWithDataProc
+mend
+

@@ -47,7 +47,7 @@ ReadLoop:               ld a, high UART_GetStatus       ; Are there any characte
                         jr ReadLoop                     ; then check if there are more data bytes ready to read
 pend
 
-ESPSendTestBytes        proc                            ; Send 256 bytes to UART, with values 0..255
+/*ESPSendTestBytes      proc                            ; Send 256 bytes to UART, with values 0..255
                         ld h, 0
                         ld bc, $133B                    ; UART Tx port also gives the UART status when read
 WaitNotBusy:            in a, (c)                       ; Read the UART status
@@ -58,7 +58,7 @@ WaitNotBusy:            in a, (c)                       ; Read the UART status
                         inc h
                         jr nz, WaitNotBusy
                         ret
-pend
+pend*/
 
 ESPRead                 proc
                         ld a, (FRAMES)
@@ -158,17 +158,17 @@ ValidateCmdProc         proc                            ; a = Op, hl = ValWordAd
                         ld bc, BufferLen
 FindFrame:              ld a, $C0
                         cpir                            ; Find next SLIP frame marker
-                        jp po, Fail                     ; If we ran out of buffer, exit with failure
-                        jr nz, Fail                     ; If we didn't find a $C0, exit with failure
+                        jp po, FailWithoutReason        ; If we ran out of buffer, exit with failure
+                        jr nz, FailWithoutReason        ; If we didn't find a $C0, exit with failure
                         ld a, (hl)                      ; Read req/resp
                         dec bc
                         cp 1                            ; Is cmd response?
-                        jp nz, FindFrame                ; If not, find next frame marker
+                        jr nz, FindFrame                ; If not, find next frame marker
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read Op
 Opcode equ $+1:         cp SMC                          ; Is expected Op?
-                        jp nz, FindFrame                ; If not, find next frame marker
+                        jr nz, FindFrame                ; If not, find next frame marker
                         inc hl
                         dec bc
                         ld e, (hl)
@@ -191,6 +191,18 @@ ValWordAddr3 equ $+1:   ld (SMC), a                     ; Save value byte 3
                         dec bc
                         ld a, (hl)                      ; Read value byte 4
 ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
+                        ld a, e                         ; Simplistic version of checking DE is at least 2
+                        or d                            ; Should always be larger hopefully, given the nature or ORing 0, 1 or 2 with the MSB
+                        cp 2                            ; TODO: If we get unexpected failures later, revisit this compare
+                        jr c, FailWithoutReason         ; If Data length is smaller than 2 bytes, signal an error
+                        inc hl                          ; Look ahead to the first data byte
+                        ld a, (hl)
+                        or a
+                        jr z, DataSuccess               ; If data first byte is 00 we can continue treating as a success
+                        inc hl                          ; We have a failure,
+                        ld a, (hl)                      ; so read the data second byte as the reason
+                        jr FailWithReason               ; and return a failure    */
+DataSuccess:            dec hl                          ; If data first byte is 00 (success), return to the original position before looking ahead
                         add hl, de                      ; Skip <length> bytes of data (for now)
                         push hl                         ; (maybe we will save a pointer to this later)
                         ld hl, bc
@@ -202,17 +214,16 @@ ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
                         dec bc
                         ld a, (hl)                      ; Read SLIP frame end
                         cp $C0                          ; Is expected frame marker?
-                        jp nz, FindFrame                ; If not, find next frame marker
+                        jr nz, FindFrame                ; If not, find next frame marker
                         or a                            ; Clear carry for success,
-                        ret                             ; and return
-Fail:                   scf                             ; Set carry for error,
-                        ret                             ; and return
+                        ret                             ; and return.
+FailWithoutReason:      xor a                           ; This returns error reason 0
+FailWithReason:         ld (Cmd.LastErr), a             ; Save the error reason code for future use
+                        scf                             ; Set carry for error,
+                        ret                             ; and return.
 pend
 
 ErrorProc               proc
-                        //call PrintRst16Error
-//Stop:                   //Border(2)
-                        //jr Stop
                         if enabled ErrDebug
                           call PrintRst16Error
 Stop:                     Border(2)
@@ -224,4 +235,44 @@ Stop:                     Border(2)
                           jp Return.WithCustomError     ; Straight to the error handing exit routine
                         endif
 pend
+
+ESPWaitFlushWait        proc
+                        call Wait5Frames
+                        call ESPFlush                   ; Clear UART buffer
+                        call Wait5Frames
+                        ret
+pend
+
+ESPSendCmdWithDataProc  proc                            ; a = Op, de = DataAddr, hl = DataLen
+                        ld (Cmd.HeaderOp), a            ; SMC> Copy Op into send buffer
+                        ld (Cmd.HeaderDataLen), hl      ; SMC> Copy DataLen into send buffer
+                        push bc                         ; Save ErrAddr till we're ready to check the result
+                        push de                         ; Save DataAddr till we're ready to send data
+                        call ESPWaitFlushWait
+
+                        ld hl, Cmd.Header               ; This is the send buffer, freshly patched
+                        ld de, Cmd.HeaderLen            ; Header send buffer is always 9 bytes long
+                        call ESPSendBytesProc           ; Send all 9 bytes of the header (doesn't signal any error)
+
+                        pop hl                          ; Restore DataAddr (in hl this time)
+                        ld de, (Cmd.HeaderDataLen)      ; This is the same DataLen we patched into the header
+                        call ESPSendBytesProc           ; Send all DataLen bytes of the data (doesn't signal any error)
+
+                        ld hl, Cmd.Footer               ; This is the footer send buffer containing $C0
+                        ld de, Cmd.FooterLen            ; Footer send buffer is always 1 byte long
+                        call ESPSendBytesProc           ; Send the single byte of the footer (doesn't signal any error)
+
+                        //pop hl:call ESPRead:ret       ; This would print the response in hex instead of validating it
+
+                        call ESPReadIntoBuffer          ; Read the UART dry into the buffer, or at least 1024 bytes
+                        ld a, (Cmd.HeaderOp)            ; Validate for the same Op we sent the command for
+                        ld hl, Dummy32                  ; We don't want to preserve the value
+                        //CSBreak()
+                        call ValidateCmdProc            ; a = Op, hl = ValWordAddr (carry set means error)
+                        pop hl                          ; Retrieve ErrAddr (always, to balance stack)
+                        ret nc                          ; If no error we can return
+                        jp ErrorProc                    ; Otherwise signal a fatal error with the passed-in error msg
+pend
+
+
 

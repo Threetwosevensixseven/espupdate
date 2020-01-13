@@ -465,6 +465,7 @@ class ESPLoader(object):
 
     """ Start downloading an application image to RAM """
     def mem_begin(self, size, blocks, blocksize, offset):
+        isStub = self.IS_STUB
         if self.IS_STUB:  # check we're not going to overwrite a running stub with this data
             stub = self.STUB_CODE
             load_start = offset
@@ -476,6 +477,13 @@ class ESPLoader(object):
                                       "Can't load binary at overlapping address range 0x%08x-0x%08x. " +
                                       "Either change binary loading address, or use the --no-stub " +
                                       "option to disable the software loader.") % (start, end, load_start, load_end))
+        #tmpData = struct.pack('<IIII', size, blocks, blocksize, offset)
+        # = len(tmpData)
+
+        #f = open('test.bin', 'w+b')
+        #binary_format = bytearray(tmpData)
+        #f.write(binary_format)
+        #f.close()
 
         return self.check_command("enter RAM download mode", self.ESP_MEM_BEGIN,
                                   struct.pack('<IIII', size, blocks, blocksize, offset))

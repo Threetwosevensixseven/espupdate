@@ -10,7 +10,11 @@ ErrDebug optionbool 212, -15, "Debug", false            ; Print errors onscreen 
 
 org $2000                                               ; Dot commands always start at $2000
 Start:
-                        di                              ; We run with interrupts off apart from printing and halts
+                        jr Begin
+                        db "ESPUPDATEv1."               ; Put a signature and version in the file in case we ever
+                        BuildNo()                       ; need to detect it programmatically
+                        db 0
+Begin:                  di                              ; We run with interrupts off apart from printing and halts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
                         ld (SavedArgs), hl              ; Save args for later
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls
@@ -312,6 +316,30 @@ UploadStub:
                         ; data_blocks = 1
                         ; data_block_0_from_offs = 0x0000
                         ; data_block_0_to_offs   = 0x1800
+
+                        ; A: mem_begin(0x1F60, 2, 0x1800, 0x4010E000)
+                        ; self.command(op, data, chk, timeout=timeout)
+                        ;   op      = 5
+                        ;   data    = 16 bytes (see below)
+                        ;   chk     = 0
+                        ;   timeout = 3
+                        ; data consists of:
+                        ;   size      = 0x00001F60 (UInt32)
+                        ;   blocks    = 0x00000002 (UInt32)
+                        ;   blocksize = 0x00001800 (UInt32)
+                        ;   offset    = 0x4010E000 (UInt32)
+                        ;   Ignore what the PyCharm debugger says - it is showing 14 bytes instead of 16 :(
+                        ESPSendCmdWithData(ESP_MEM_BEGIN, Cmd.Stub1, Cmd.Stub1Len, Err.StubUpload)
+                        ; This should send:
+                        ; c0 00 05 10 00 00 00 00 00 60 1f 00 00 02 00 00
+                        ; 00 00 18 00 00 00 e0 10 40 c0
+                        ; We should receive:
+                        ; c0 01 05 02 00 94 01 60 00 00 00 c0
+                        ; We know that the data received should be at least two bytes here
+                        ; If success, the first byte will be be 00
+                        ; If failure, the first byte will be non-zero and the second byte will be the reason code
+                        ; (The data could be more than two..four bytes if the command was md5sum)
+
 
                         zeusprinthex "Buffer: ", Buffer
                         zeusprinthex "eFuses: ", eFuses

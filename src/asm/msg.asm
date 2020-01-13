@@ -40,10 +40,11 @@ Err                     proc
                         ;  "<-Longest valid erro>", 'r'|128
   Break:                db "D BREAK - CONT repeat", 's'|128
   NotNext:              db "Spectrum Next require", 'd'|128
-  NoSync:               db "Sync failur",           'e'|128
+  NoSync:               db "Sync error or no ES",   'P'|128
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
   NoMem:                db "Out of memor",          'y'|128
   BadDot:               db "Error reading dot cm",  'd'|128
+  StubUpload:           db "Error uploading stu",   'b'|128
 pend
 
 PrintRst16              proc
