@@ -89,10 +89,10 @@ FillLDIR                macro(SourceAddr, Size, Value)
                         ldir
 mend
 
-ValidateCmd             macro(Op, ValWordAddr)
+ESPValidateCmd          macro(Op, ValWordAddr)
                         ld a, Op
                         ld hl, ValWordAddr
-                        call ValidateCmdProc
+                        call ESPValidateCmdProc
 mend
 
 ErrorAlways             macro(ErrAddr)
@@ -139,7 +139,6 @@ MirrorA                 macro()
 mend
 
 ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
-                        zeusprinthex "Test: ", DataAddr, DataLen
                         ld a, Op
                         ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later
                         ld hl, DataLen                  ; This is faster being in hl because we copy to memory

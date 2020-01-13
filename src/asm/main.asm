@@ -118,10 +118,10 @@ SyncLoop:               push bc
                         djnz SyncLoop
                         //PrintMsg(Msg.RcvSync)
                         call ESPReadIntoBuffer
-                        ValidateCmd($08, Dummy32)       ; Check whether this we got a sync response
-//TestError:            scf                           ; You can use this forced error to test how errors are handled
+                        ESPValidateCmd($08, Dummy32)    ; Check whether this we got a sync response
+//TestError:            scf                             ; You can use this forced error to test how errors are handled
                         ErrorIfCarry(Err.NoSync)
-                        PrintMsg(Msg.SyncOK)
+                        //PrintMsg(Msg.SyncOK)
 
 ReadEfuses:
                         //PrintMsg(Msg.Fuse1)           ; "Reading eFuses..."
@@ -131,7 +131,7 @@ ReadEfuses:
                         ESPReadReg(0x3ff0005c)          ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, eFuse1)        ; val = 0x00600194 (on test ESP)
+                        ESPValidateCmd($0A, eFuse1)     ; val = 0x00600194 (on test ESP)
 
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
@@ -139,7 +139,7 @@ ReadEfuses:
                         ESPReadReg(0x3ff00058)          ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, eFuse2)        ; val = 0x1700B000 (on test ESP)
+                        ESPValidateCmd($0A, eFuse2)     ; val = 0x1700B000 (on test ESP)
 
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
@@ -147,7 +147,7 @@ ReadEfuses:
                         ESPReadReg(0x3ff00054)          ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, eFuse3)        ; val = 0x020021E8 (on test ESP)
+                        ESPValidateCmd($0A, eFuse3)     ; val = 0x020021E8 (on test ESP)
 
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
@@ -155,7 +155,7 @@ ReadEfuses:
                         ESPReadReg(0x3ff00050)          ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, eFuse4)        ; val = 0x5A240000 (on test ESP)
+                        ESPValidateCmd($0A, eFuse4)     ; val = 0x5A240000 (on test ESP)
                         ; Full 128b value of all four eFuses = 0x00600194 1700B000 020021E8 5A240000 (on test ESP)
 CheckChip:
                         //PrintBufferHex(eFuses, 16)
@@ -197,7 +197,7 @@ ReadMAC:
                         ESPReadReg(ESP_OTP_MAC0)        ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, MAC0)          ; val = 0x5A240000 (on test ESP)
+                        ESPValidateCmd($0A, MAC0)       ; val = 0x5A240000 (on test ESP)
 
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
@@ -205,7 +205,7 @@ ReadMAC:
                         ESPReadReg(ESP_OTP_MAC1)        ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, MAC1)          ; val = 0x020021E8 (on test ESP)
+                        ESPValidateCmd($0A, MAC1)       ; val = 0x020021E8 (on test ESP)
 
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
@@ -213,7 +213,7 @@ ReadMAC:
                         ESPReadReg(ESP_OTP_MAC3)        ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
-                        ValidateCmd($0A, MAC3)          ; val = 0x00600194 (on test ESP)
+                        ESPValidateCmd($0A, MAC3)       ; val = 0x00600194 (on test ESP)
                         //PrintBufferHex(MAC0, 12)
 
 CalculateMAC:
@@ -329,7 +329,7 @@ UploadStub:
                         ;   blocksize = 0x00001800 (UInt32)
                         ;   offset    = 0x4010E000 (UInt32)
                         ;   Ignore what the PyCharm debugger says - it is showing 14 bytes instead of 16 :(
-                        ESPSendCmdWithData(ESP_MEM_BEGIN, Cmd.Stub1, Cmd.Stub1Len, Err.StubUpload)
+                        ESPSendCmdWithData(ESP_MEM_BEGIN, SLIP.Stub1, SLIP.Stub1Len, Err.StubUpload)
                         ; This should send:
                         ; c0 00 05 10 00 00 00 00 00 60 1f 00 00 02 00 00
                         ; 00 00 18 00 00 00 e0 10 40 c0
@@ -341,9 +341,11 @@ UploadStub:
                         ; (The data could be more than two..four bytes if the command was md5sum)
 
 
-                        zeusprinthex "Buffer: ", Buffer
-                        zeusprinthex "eFuses: ", eFuses
-                        zeusprinthex "MAC: ", MAC
+
+
+                        //zeusprinthex "Buffer:     ", Buffer
+                        //zeusprinthex "eFuses:     ", eFuses
+                        //zeusprinthex "MAC:         ", MAC
 
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached
@@ -362,7 +364,7 @@ UploadStub:
                         include "general.asm"           ; General routines
                         include "esp.asm"               ; ESP and SLIP routines
                         include "esxDOS.asm"            ; ESXDOS routines
-                        include "msg.asm"               ; Messaging and error routines
+                        include "print.asm"             ; Messaging and error routines
                         include "vars.asm"              ; Global variables
                                                         ; Everything after this is padded to the next 8K
                                                         ; but assembles at $8000

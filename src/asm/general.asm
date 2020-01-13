@@ -11,6 +11,19 @@ ErrorHandler            proc
                         jp Return.WithCustomError
 pend
 
+ErrorProc               proc
+                        if enabled ErrDebug
+                          call PrintRst16Error
+Stop:                     Border(2)
+                          jr Stop
+                        else
+                          push hl                       ; If we want to print the error at the top of the screen,
+                          call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
+                          pop hl                        ; then uncomment this code.
+                          jp Return.WithCustomError     ; Straight to the error handing exit routine
+                        endif
+pend
+
 RestoreF8               proc
 Saved equ $+1:          ld a, SMC                       ; This was saved here when we entered the dot command
                         and %1000 0000                  ; Mask out everything but the F8 enable bit
@@ -65,13 +78,13 @@ Saved equ $+1:          ld a, SMC                       ; This is written into b
 */
 pend
 
-Speeds proc Table:
+/*Speeds proc Table:
   ;  MsgAddr     Index  Notes
   dw Msg.Speed35 ;   0  Prints "3.5Mhz"
   dw Msg.Speed07 ;   1  Prints "7Mhz"
   dw Msg.Speed14 ;   2  Prints "14Mhz"
   dw Msg.Speed28 ;   3  Prints "28Mhz"
-pend
+pend*/
 
 Return                  proc
 ToBasic:
@@ -115,6 +128,15 @@ Deallocate8KBank        proc                            ; Takes bank to dealloca
                         ld de, IDE_BANK                 ; M_P3DOS takes care of stack safety stack for us
                         Rst8(esxDOS.M_P3DOS)            ; Make NextZXOS API call through esxDOS API with M_P3DOS
                         ErrorIfNoCarry(Err.NoMem)       ; Fatal error, exits dot command
+                        ret
+pend
+
+Wait5Frames             proc
+                        ei
+                        for n = 1 to 5
+                          halt
+                        next
+                        di
                         ret
 pend
 

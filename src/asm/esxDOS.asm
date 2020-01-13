@@ -70,3 +70,4 @@ fSeek:
                         Rst8(esxDOS.F_SEEK)             ; seek into file
                         ret
 pend
+

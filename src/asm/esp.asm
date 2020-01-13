@@ -18,6 +18,19 @@ SLIP                    proc
   ReadRegAddr:          dl 0x3ff0005c                   ; Register address SMC (4 bytes)
                         db $C0                          ; SLIP Frame end
   ReadRegLen            equ $-ReadReg
+  Header                db $C0, $00                     ; Frame start, Request
+  HeaderOp:             db SMC                          ; <SMC Patched before sending command
+  HeaderDataLen:        dw SMC                          ; <SMC Patched before sending command
+  HeaderCS:             dl 0                            ; Usually 0 when sending, could be patched
+  HeaderLen             equ $-Header                    ; The header is always 9 bytes
+  Footer:               db $C0                          ; Frame end
+  FooterLen:            equ $-Footer                    ; The footer is always 1 byte
+  Stub1:                dl 0x00001F60
+                        dl 0x00000002
+                        dl 0x00001800
+                        dl 0x4010E000
+  Stub1Len              equ $-Stub1                     ; Stub1 should be 16 bytes long
+  LastErr:              ds 0
 pend
 
 ESPSendBytesProc        proc                            ; hl = Buffer, de = Length
@@ -108,19 +121,19 @@ HasData:                inc b                           ; Otherwise Read the byt
                         jr WaitNotBusy                  ; then check if there are more data bytes ready to read
 pend
 
-ClearBuffer:            proc
-                        FillLDIR(Buffer, BufferLen, 0)
+ESPClearBuffer:         proc
+                        FillLDIR(Buffer, Buffer.Len, 0)
                         ret
 pend
 
 ESPReadIntoBuffer       proc
-                        call ClearBuffer
+                        call ESPClearBuffer
                         ld a, (FRAMES)
                         add a, 5
                         ld (TimeoutFrame), a
                         ld bc, UART_GetStatus
                         ld hl, Buffer
-                        ld de, BufferLen
+                        ld de, Buffer.Len
                         ei
 WaitNotBusy:            in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
@@ -145,8 +158,8 @@ HasData:                inc b                           ; Otherwise Read the byt
                         ret                             ; and return
 pend
 
-ValidateCmdProc         proc                            ; a = Op, hl = ValWordAddr
-                        ld (ValidateCmdProc.Opcode), a
+ESPValidateCmdProc       proc                            ; a = Op, hl = ValWordAddr
+                        ld (Opcode), a
                         ld (ValWordAddr4), hl
                         inc hl
                         ld (ValWordAddr3), hl
@@ -155,7 +168,7 @@ ValidateCmdProc         proc                            ; a = Op, hl = ValWordAd
                         inc hl
                         ld (ValWordAddr1), hl
                         ld hl, Buffer
-                        ld bc, BufferLen
+                        ld bc, Buffer.Len
 FindFrame:              ld a, $C0
                         cpir                            ; Find next SLIP frame marker
                         jp po, FailWithoutReason        ; If we ran out of buffer, exit with failure
@@ -218,22 +231,9 @@ DataSuccess:            dec hl                          ; If data first byte is 
                         or a                            ; Clear carry for success,
                         ret                             ; and return.
 FailWithoutReason:      xor a                           ; This returns error reason 0
-FailWithReason:         ld (Cmd.LastErr), a             ; Save the error reason code for future use
+FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason code for future use
                         scf                             ; Set carry for error,
                         ret                             ; and return.
-pend
-
-ErrorProc               proc
-                        if enabled ErrDebug
-                          call PrintRst16Error
-Stop:                     Border(2)
-                          jr Stop
-                        else
-                          push hl                       ; If we want to print the error at the top of the screen,
-                          call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
-                          pop hl                        ; then uncomment this code.
-                          jp Return.WithCustomError     ; Straight to the error handing exit routine
-                        endif
 pend
 
 ESPWaitFlushWait        proc
@@ -244,35 +244,33 @@ ESPWaitFlushWait        proc
 pend
 
 ESPSendCmdWithDataProc  proc                            ; a = Op, de = DataAddr, hl = DataLen
-                        ld (Cmd.HeaderOp), a            ; SMC> Copy Op into send buffer
-                        ld (Cmd.HeaderDataLen), hl      ; SMC> Copy DataLen into send buffer
+                        ld (SLIP.HeaderOp), a           ; SMC> Copy Op into send buffer
+                        ld (SLIP.HeaderDataLen), hl     ; SMC> Copy DataLen into send buffer
                         push bc                         ; Save ErrAddr till we're ready to check the result
                         push de                         ; Save DataAddr till we're ready to send data
                         call ESPWaitFlushWait
 
-                        ld hl, Cmd.Header               ; This is the send buffer, freshly patched
-                        ld de, Cmd.HeaderLen            ; Header send buffer is always 9 bytes long
+                        ld hl, SLIP.Header              ; This is the send buffer, freshly patched
+                        ld de, SLIP.HeaderLen           ; Header send buffer is always 9 bytes long
                         call ESPSendBytesProc           ; Send all 9 bytes of the header (doesn't signal any error)
 
                         pop hl                          ; Restore DataAddr (in hl this time)
-                        ld de, (Cmd.HeaderDataLen)      ; This is the same DataLen we patched into the header
+                        ld de, (SLIP.HeaderDataLen)     ; This is the same DataLen we patched into the header
                         call ESPSendBytesProc           ; Send all DataLen bytes of the data (doesn't signal any error)
 
-                        ld hl, Cmd.Footer               ; This is the footer send buffer containing $C0
-                        ld de, Cmd.FooterLen            ; Footer send buffer is always 1 byte long
+                        ld hl, SLIP.Footer              ; This is the footer send buffer containing $C0
+                        ld de, SLIP.FooterLen           ; Footer send buffer is always 1 byte long
                         call ESPSendBytesProc           ; Send the single byte of the footer (doesn't signal any error)
 
                         //pop hl:call ESPRead:ret       ; This would print the response in hex instead of validating it
 
                         call ESPReadIntoBuffer          ; Read the UART dry into the buffer, or at least 1024 bytes
-                        ld a, (Cmd.HeaderOp)            ; Validate for the same Op we sent the command for
+                        ld a, (SLIP.HeaderOp)           ; Validate for the same Op we sent the command for
                         ld hl, Dummy32                  ; We don't want to preserve the value
                         //CSBreak()
-                        call ValidateCmdProc            ; a = Op, hl = ValWordAddr (carry set means error)
+                        call ESPValidateCmdProc         ; a = Op, hl = ValWordAddr (carry set means error)
                         pop hl                          ; Retrieve ErrAddr (always, to balance stack)
                         ret nc                          ; If no error we can return
                         jp ErrorProc                    ; Otherwise signal a fatal error with the passed-in error msg
 pend
-
-
 

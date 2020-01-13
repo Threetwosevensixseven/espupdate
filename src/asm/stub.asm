@@ -9,6 +9,11 @@ disp -$4000                     ; of the dot command/
 
 UpperCodeStart:                 ; after allocating and paging two new 8K banks from NextZXOS.
 
+Buffer                  proc
+                        ds 1024
+  Len                   equ $-Buffer
+pend
+
 ESP8266StubText:
 import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_text.bin"
 ESP8266StubTextLen      equ $-1
