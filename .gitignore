@@ -12,3 +12,5 @@ obj
 ~*.xlsx
 /dot/ESPUPDATE (Garry turbo test).piz
 /dot/ESPUPDATE (Garry turbo test).zip
+/build/get-tools.ps1
+/dot/*.piz

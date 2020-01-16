@@ -1,0 +1,43 @@
+if (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Output 'Running as administrator'
+} else {
+    Write-Output 'Running limited'
+}
+
+if (Test-Path 'AppendFW.exe') {
+    Write-Output "AppendFW.exe already exists, not downloading"
+} else {
+    Write-Output "Downloading AppendFW.exe..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    wget "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/AppendFW.exe" -outfile "AppendFW.exe"
+    Write-Output "Downloaded AppendFW.exe"
+}
+
+if (Test-Path 'hdfmonkey.exe') {
+    Write-Output "hdfmonkey.exe already exists, not downloading"
+} else {
+    Write-Output "Downloading hdfmonkey.exe..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    wget "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/hdfmonkey.exe" -outfile "hdfmonkey.exe"
+    Write-Output "Downloaded hdfmonkey.exe"
+}
+
+if (Test-Path 'pskill.exe') {
+    Write-Output "pskill.exe already exists, not downloading"
+} else {
+    Write-Output "Downloading pskill.exe..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    wget "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/pskill.exe" -outfile "pskill.exe"
+    Write-Output "Downloaded pskill.exe"
+}
+
+if (Test-Path 'ZXVersion.exe') {
+    Write-Output "ZXVersion.exe already exists, not downloading"
+} else {
+    Write-Output "Downloading ZXVersion.exe..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    wget "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/ZXVersion.exe" -outfile "ZXVersion.exe"
+    Write-Output "Downloaded ZXVersion.exe"
+}
+
+#Pause

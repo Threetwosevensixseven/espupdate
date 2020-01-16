@@ -135,3 +135,27 @@ Wait5Frames             proc
                         ret
 pend
 
+Wait80Frames            proc
+                        ei
+                        for n = 1 to 80
+                          halt
+                        next
+                        di
+                        ret
+pend
+
+; From http://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Division
+DivideACbyDE            proc                            ; Divides AC by DE
+                        ld hl, 0
+                        ld b, 16
+Loop:                   sli c                           ; aka SLL/SL1
+                        rla
+                        adc hl, hl
+                        sbc hl, de
+                        jr nc, $+4
+                        add hl, de
+                        dec c
+                        djnz Loop
+                        ret                             ; Returns quotient in AC, remainder in HL
+pend
+

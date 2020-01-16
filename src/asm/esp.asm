@@ -30,10 +30,10 @@ SLIP                    proc
                         dl 0x00001800
                         dl 0x4010E000
   Stub1Len              equ $-Stub1                     ; Stub1 should be 16 bytes long
-  DataBlock:            dl 0x00000000
-                        dl 0x00000000
-                        dl 0x00000000
-                        dl 0x00000000
+  DataBlock:            dl 0x00000000                   ; len(data)
+                        dl 0x00000000                   ; block number
+                        dl 0x00000000                   ; unk1
+                        dl 0x00000000                   ; unk2
   DataBlockLen          equ $-DataBlock                 ; DataBlock should be 16 bytes long
   LastErr:              ds 0
 pend
@@ -243,10 +243,20 @@ DataSuccess:            dec hl                          ; If data first byte is 
                         jr nz, FindFrame                ; If not, find next frame marker
                         or a                            ; Clear carry for success,
                         ret                             ; and return.
-FailWithoutReason:      xor a                           ; This returns error reason 0
 FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason code for future use
+                        push af
+                        PrintMsg(Msg.ErrCd)             ; "Error code: "
+                        pop af
+                        push af
+                        call PrintAHexNoSpace           ; Print A in hex
+                        ld a, CR                        ; Print CR
+                        rst 16
+                        pop af
                         scf                             ; Set carry for error,
                         ret                             ; and return.
+FailWithoutReason:      xor a                           ; This returns error reason 0
+                        scf
+                        ret
 pend
 
 ESPWaitFlushWait        proc
@@ -280,10 +290,36 @@ ESPSendCmdWithDataProc  proc                            ; a = Op, de = DataAddr,
                         call ESPReadIntoBuffer          ; Read the UART dry into the buffer, or at least 1024 bytes
                         ld a, (SLIP.HeaderOp)           ; Validate for the same Op we sent the command for
                         ld hl, Dummy32                  ; We don't want to preserve the value
-                        //CSBreak()
                         call ESPValidateCmdProc         ; a = Op, hl = ValWordAddr (carry set means error)
                         pop hl                          ; Retrieve ErrAddr (always, to balance stack)
                         ret nc                          ; If no error we can return
                         jp ErrorProc                    ; Otherwise signal a fatal error with the passed-in error msg
 pend
+
+ESPSetDataBlockProc     proc
+                        push bc
+                        ld a, ESP_CHECKSUM_MAGIC        ; Checksum seed: $EF
+Loop:                   xor (hl)
+                        dec bc
+                        push af
+                        ld a, b
+                        or c
+                        jp z, Finish
+                        pop af
+                        inc hl
+                        jp Loop
+Finish:                 pop af                          ; This is the calculated checksum
+                        ld hl, SLIP.HeaderCS            ; Write it to the header
+                        ld (hl), a
+                        inc hl
+                        ld (hl), 0
+                        inc hl
+                        ld (hl), 0
+                        pop hl                          ; This is the passed in data length
+                        ld (SLIP.DataBlock), hl         ; Write it to the first data block long word
+                        ld hl, 0
+                        ld (SLIP.DataBlock+2), hl
+                        ret
+pend
+
 

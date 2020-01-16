@@ -1,7 +1,8 @@
 ; msg.asm
 
 Msg                     proc
-  Startup:              db "ESP Update Tool v1."
+  //Startup:              db "ESP Update Tool v1."
+  Startup:              db "ESP UPDATE TOOL v1."
                         BuildNo()
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   SendSync:             db "Syncing...", CR, 0
@@ -11,8 +12,49 @@ Msg                     proc
   FWiFi:                db "Features: WiFi", CR, 0
   FFLash:               db "          Embedded Flash", CR, 0
   Success:              db "ESP updated successfully!", CR, 0
-  Stub1:                db "Uploading stub...", CR, 0
+  ErrCd:                db "Error code: ", 0
   MAC2:                 db "MAC: ", 0
+
+  Stub1:                db "Uploading stub...", CR, 0
+  Stub2:                db "Running stub...", CR, 0
+  Stub3:                db "Stub running", CR, 0
+  Stub4:                db "Configuring flash size...", CR, 0
+  Stub5:                db "Flash params set to 0x0221", CR, 0
+  Stub6:                db "Uploading 457535 bytes...", CR, 0
+
+  Write1:               db "Writing at 0x00000000 (03%)", 0
+  Write2:               db Left11, "04000 (07%)", 0
+  Write3:               db Left11, "08000 (10%)", 0
+  Write4:               db Left11, "0C000 (14%)", 0
+  Write5:               db Left11, "10000 (17%)", 0
+  Write6:               db Left11, "14000 (21%)", 0
+  Write7:               db Left11, "18000 (25%)", 0
+  Write8:               db Left11, "1C000 (28%)", 0
+  Write9:               db Left11, "20000 (32%)", 0
+  Write10:              db Left11, "24000 (35%)", 0
+  Write11:              db Left11, "28000 (39%)", 0
+  Write12:              db Left11, "2C000 (42%)", 0
+  Write13:              db Left11, "30000 (46%)", 0
+  Write14:              db Left11, "34000 (50%)", 0
+  Write15:              db Left11, "38000 (53%)", 0
+  Write16:              db Left11, "3C000 (57%)", 0
+  Write17:              db Left11, "40000 (60%)", 0
+  Write18:              db Left11, "44000 (64%)", 0
+  Write19:              db Left11, "48000 (67%)", 0
+  Write20:              db Left11, "4C000 (71%)", 0
+  Write21:              db Left11, "50000 (75%)", 0
+  Write22:              db Left11, "54000 (78%)", 0
+  Write23:              db Left11, "58000 (82%)", 0
+  Write24:              db Left11, "5C000 (85%)", 0
+  Write25:              db Left11, "60000 (89%)", 0
+  Write26:              db Left11, "64000 (92%)", 0
+  Write27:              db Left11, "68000 (96%)", 0
+  Write28:              db Left11, "6C000 (100%)", Left11, Left11, Left6, 0
+
+  Finish1:              db "Wrote 457535 bytes          ", CR, 0
+  Finish2:              db "Hash of data verified", CR, 0
+  Finish3:              db "Resetting ESP...", CR, 0
+
   //RcvSync:            db "Receiving sync", CR, 0
   //ESPProg2:           db "Enabling GPIO0 output", CR, 0
   //ESPProg3:           db "Setting RST low", CR, 0
@@ -43,7 +85,7 @@ Err                     proc
   NoSync:               db "Sync error or no ES",   'P'|128
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
   BadDot:               db "Error reading dot cm",  'd'|128
-  StubUpload:           db "Upload error (0xHH",    ')'|128
+  StubUpload:           db "Error uploading stu",   'b'|128
   StubUploadHex         equ $-3
 pend
 

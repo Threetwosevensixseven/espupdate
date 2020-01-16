@@ -1,4 +1,4 @@
-; main.asm
+    ; main.asm
                                                         ; Assembles with regular version of Zeus (not Next version),
 zeusemulate             "48K", "RAW", "NOROM"           ; because that makes it easier to assemble dot commands
 zoSupportStringEscapes  = true;                         ; Download Zeus.exe from http://www.desdes.com/products/oldfiles/
@@ -355,20 +355,114 @@ UploadStub:
                         ;   chk          = 0xED (ESP_CHECKSUM_MAGIC XOR'd with every byte in data), where:
                         ;                  ESP_CHECKSUM_MAGIC = 0xEF
                         ;   timeout      = 0x03
+                        ; which should send:
+                        ;   c0 00 07 10 18 ed 00 00 00 00 18 00 00 00 00 00
+                        ;   00 00 00 00 00 00 00 00 00 a8 10 00 40 01 ff ff
+                        ;   46 45 00 00 00 00 80 fe 3f 4f 48 41 49 a4 ab ff
+                        ;   3f 0c ab fe 3f 80 80 00 00 e8 f9 10 40 0c 00 00
+                        ;   ...
+                        ;   38 0d 71 1c fa ca c3 70 3c db dc 0c c0
+                        ; and receives:
+                        ;   c0 01 07 02 00 94 01 60 00 00 00 c0
 
-                        ESPSetDataBlockHeader(0x1810, 0)
-                        ESPSendCmdWithData(ESP_MEM_DATA, SLIP.DataBlock, SLIP.DataBlockLen, Err.StubUpload)
+                        //ESPSetDataBlockHeader(ESP8266StubText, 0x1800, 0)
+                        //CSBreak()
+                        //ESPSendCmdWithData2(ESP_MEM_DATA, SLIP.DataBlock, 0x1810, ESP8266StubText, Err.StubUpload)
 
-                        ; TODO
-                        ; This by itself (without the 0x1800 bytes of data appended) gives a response error
-                        ; with reason code 5:
-                        ; c0 01 07 02 00 94 01 60 00 01 05 c0
+                        ; But it actually sends:
+                        ;   c0 00 07 10 18 ed 00 00 00 00 18 00 00 00 00 00   À....í..........
+                        ;   00 00 00 00 00 00 00 00 00 22 2b 24 ed 53 2d 24   ........."+$íS-$
+                        ;   ed 43 2f 24 dd 22 31 24 c9 01 3b 13 ed 78 e6 02   íC/$Ý"1$É.;.íxæ.
+                        ;   20 fa 7e ed 79 23 1b 7a b3 20 f1 c9 01 3b 13 3e    ú~íy#.z³ ñÉ.;.>
+                        ;   ...
+                        ;   5e 23 0b 56 23 0b 7e                              ^#.V#.~
+                        ; and return a response error with reason code 5:
+                        ;   5e 23 0b 56 23 0b 7e 32 f9 27 23 0b 7e 32         ^#.V#.~2ù'#.~2
+
                         ; So the error message should be modified to include two hex bytes
 
 
                         //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses
                         //zeusprinthex "MAC:         ", MAC
+
+                        if (enabled TestWorkflow)
+                          WaitFrames(100)
+                          PrintMsg(Msg.Stub2)
+                          WaitFrames(20)
+                          PrintMsg(Msg.Stub3)
+                          WaitFrames(10)
+                          PrintMsg(Msg.Stub4)
+                          WaitFrames(5)
+                          PrintMsg(Msg.Stub5)
+                          PrintMsg(Msg.Stub6)
+
+                          PrintMsg(Msg.Write1)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write2)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write3)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write4)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write5)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write6)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write7)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write8)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write9)
+                          call Wait80Frames
+
+                          PrintMsg(Msg.Write10)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write11)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write12)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write13)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write14)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write15)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write16)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write17)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write18)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write19)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write20)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write21)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write22)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write23)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write24)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write25)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write26)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write27)
+                          call Wait80Frames
+                          PrintMsg(Msg.Write28)
+                          call Wait5Frames
+
+                          PrintMsg(Msg.Finish1)
+                          PrintMsg(Msg.Finish2)
+                          PrintMsg(Msg.Finish3)
+                          nextreg 2, 128                  ; Set RST Low
+                          call Wait5Frames
+                          nextreg 2, 0                    ; Set RST high
+                          call Wait5Frames
+                        endif
 
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached

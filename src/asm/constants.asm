@@ -3,6 +3,10 @@
 ; Application
 ResetWait               equ 5
 DisableScroll           equ false
+TestWorkflow            equ true
+WriteDelay              equ 80
+Left11                  equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
+Left6                   equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
 
 ; ESP
 ESP_OTP_MAC0            equ 0x3ff00050
@@ -41,6 +45,7 @@ pend
 
 ; Chars
 SMC                     equ 0
+UP                      equ 11
 CR                      equ 13
 LF                      equ 10
 Space                   equ 32
