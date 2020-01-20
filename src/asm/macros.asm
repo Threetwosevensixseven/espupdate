@@ -138,33 +138,29 @@ MirrorA                 macro()
                         db $ED, $24
 mend
 
-ESPSetDataBlockHeader   macro(DataAddr, DataLength, Seq)
-                        ld hl, DataAddr
-                        ld bc, DataLength
-                        call ESPSetDataBlockProc
-                        /*
-                        exx
-                        ld hl, DataLength and $FFFF
-                        ld de, DataLength >> 16
-                        ld bc, Seq and $FFFF
-                        ld hl, Seq >> 16
-                        call ESPSetDataBlockProc
-                        */
-mend
-
 ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
                         ld a, Op
                         ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later
                         ld hl, DataLen                  ; This is faster being in hl because we copy to memory
                         ld bc, ErrAddr                  ; This can be in bc because it's just as quick to pop hl later
+                        ld ix, 0
                         call ESPSendCmdWithDataProc
 mend
 
-ESPSendCmdWithData2     macro(Op, DataAddr, DataLen, ErrAddr)
-                        ld a, Op
+ESPSendDataBlock        macro(DataAddr, DataLen, Seq, ErrAddr)
+                        ld hl, DataAddr
+                        ld bc, DataLen
+                        call ESPSetDataBlockProc
+
+                        ld hl, DataLen
+                        ld de, Seq
+                        call ESPSetDataBlockHeaderProc2
+
+                        ld a, ESP_MEM_DATA
                         ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later
-                        ld hl, DataLen                  ; This is faster being in hl because we copy to memory
+                        ld hl, DataLen+16               ; This is faster being in hl because we copy to memory
                         ld bc, ErrAddr                  ; This can be in bc because it's just as quick to pop hl later
+                        ld ix, SLIP.DataBlock
                         call ESPSendCmdWithDataProc
 mend
 

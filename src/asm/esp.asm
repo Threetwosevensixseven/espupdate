@@ -46,6 +46,15 @@ ESPSetDataBlockHeaderProc proc
                         ret
 pend
 
+ESPSetDataBlockHeaderProc2 proc
+                        ld (SLIP.DataBlock), hl
+                        ld (SLIP.DataBlock+2), de
+                        ld hl, 0
+                        ld (SLIP.DataBlock+4), hl
+                        ld (SLIP.DataBlock+6), hl
+                        ret
+pend
+
 ESPSendBytesProc        proc                            ; hl = Buffer, de = Length
                         ld bc, UART_GetStatus           ; UART Tx port also gives the UART status when read
 WaitNotBusy:            in a, (c)                       ; Read the UART status
@@ -53,6 +62,26 @@ WaitNotBusy:            in a, (c)                       ; Read the UART status
                         jr nz, WaitNotBusy              ; If busy, keep trying until not busy
                         ld a, (hl)                      ; Otherwise read the next byte of the text to be sent
                         out (c), a                      ; and end it to the UART TX port
+                        inc hl                          ; Move to next byte of the text
+                        dec de                          ; Check whether there are any more bytes of text
+                        ld a, d
+                        or e
+                        jr nz, WaitNotBusy              ; If there are, read and repeat
+                        ret                             ; Otherwise return
+pend
+
+ESPSendBytesEscProc     proc                            ; hl = Buffer, de = Length
+                        ld bc, UART_GetStatus           ; UART Tx port also gives the UART status when read
+WaitNotBusy:            in a, (c)                       ; Read the UART status
+                        and UART_mTX_BUSY               ; and check the busy bit (bit 1)
+                        jr nz, WaitNotBusy              ; If busy, keep trying until not busy
+                        ld a, (hl)                      ; Otherwise read the next byte of the text to be sent
+                        cp $C0
+                        jp nz, NoEscape
+                        ld a, $DB                       ; Escape $C0 with $DB $DC
+                        out (c), a
+                        ld a, $DC
+NoEscape:               out (c), a                      ; and end it to the UART TX port
                         inc hl                          ; Move to next byte of the text
                         dec de                          ; Check whether there are any more bytes of text
                         ld a, d
@@ -277,9 +306,23 @@ ESPSendCmdWithDataProc  proc                            ; a = Op, de = DataAddr,
                         ld de, SLIP.HeaderLen           ; Header send buffer is always 9 bytes long
                         call ESPSendBytesProc           ; Send all 9 bytes of the header (doesn't signal any error)
 
+                        ld a, ixh                       ; if IX > $00FF then we want to treat it as an additional
+                        or a                            ; 16 bytes of data to be sent at the beginning
+                        jp z, NoDataBlock16             ; of the data block.
+
+                        push ix
+                        pop hl
+                        ld de, 16
+                        call ESPSendBytesProc           ; Send all DataLen bytes of the data (doesn't signal any error)
+                        ld hl, (SLIP.HeaderDataLen)
+                        ld de, 16
+                        or a
+                        sbc hl, de
+                        ld (SLIP.HeaderDataLen), hl
+NoDataBlock16:
                         pop hl                          ; Restore DataAddr (in hl this time)
                         ld de, (SLIP.HeaderDataLen)     ; This is the same DataLen we patched into the header
-                        call ESPSendBytesProc           ; Send all DataLen bytes of the data (doesn't signal any error)
+                        call ESPSendBytesEscProc        ; Send all DataLen bytes of the data (doesn't signal any error)
 
                         ld hl, SLIP.Footer              ; This is the footer send buffer containing $C0
                         ld de, SLIP.FooterLen           ; Footer send buffer is always 1 byte long

@@ -3,7 +3,7 @@
 ; Application
 ResetWait               equ 5
 DisableScroll           equ false
-TestWorkflow            equ true
+TestWorkflow            equ false
 WriteDelay              equ 80
 Left11                  equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
 Left6                   equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
