@@ -17,7 +17,7 @@ Msg                     proc
 
   Stub1:                db "Uploading stub...", CR, 0
   Stub2:                db "Running stub...", CR, 0
-  Stub3:                db "Stub running", CR, 0
+  Stub3:                db "OHAI, stub running", CR, 0
   Stub4:                db "Configuring flash size...", CR, 0
   Stub5:                db "Flash params set to 0x0221", CR, 0
   Stub6:                db "Uploading 457535 bytes...", CR, 0
@@ -86,7 +86,8 @@ Err                     proc
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
   BadDot:               db "Error reading dot cm",  'd'|128
   StubUpload:           db "Error uploading stu",   'b'|128
-  StubUploadHex         equ $-3
+  StubRun:              db "Failed to start stu",   'b'|128
+  //StubUploadHex         equ $-3
 pend
 
 PrintRst16              proc

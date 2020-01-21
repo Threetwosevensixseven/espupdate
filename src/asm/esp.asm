@@ -40,6 +40,9 @@ SLIP                    proc
                         dl 0x00000000                   ; unk1
                         dl 0x00000000                   ; unk2
   DataBlockLen          equ $-DataBlock                 ; DataBlock should be 16 bytes long
+  EntryBlock:           dl 0x00000000                   ; int(entrypoint == 0)
+                        dl 0x4010E004                   ; entrypoint
+  EntryBlockLen         equ $-EntryBlock                ; EntryBlock should be 8 bytes long
   LastErr:              ds 0
 pend
 

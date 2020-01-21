@@ -332,11 +332,37 @@ UploadStub:
                         ESPSendDataBlock(ESP8266StubText+0x1800, 0x0760, 1, Err.StubUpload)
                         ESPSendCmdWithData(ESP_MEM_BEGIN, SLIP.Stub2, SLIP.Stub2Len, Err.StubUpload)
                         ESPSendDataBlock(ESP8266StubData+0x0000, 0x0300, 0, Err.StubUpload)
+
+                        ; Run stub
                         PrintMsg(Msg.Stub2)
+                        ; mem_finish(stub['entry']) ; 0x4010E004
+                        ESPSendCmdWithData(ESP_MEM_END, SLIP.EntryBlock, SLIP.EntryBlockLen, Err.StubUpload)
 
-                        //call WaitKey
+                        ; Check stub is running
+                        ; If so, it returns a string "OHAI" straight after the SLIP response
+                        ld hl, Buffer+$0D
+                        ld a, (hl)
+                        cp 'O'
+                        jr nz, FailStub
+                        inc hl
+                        ld a, (hl)
+                        cp 'H'
+                        jr nz, FailStub
+                        inc hl
+                        ld a, (hl)
+                        cp 'A'
+                        jr nz, FailStub
+                        inc hl
+                        ld a, (hl)
+                        cp 'I'
+                        jr nz, FailStub
+                        jr OkStub
+FailStub:               ErrorAlways(Err.StubRun)
+OkStub:                 PrintMsg(Msg.Stub3)
 
-                        //zeusprinthex "Buffer:     ", Buffer
+
+
+                        zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses
                         //zeusprinthex "MAC:         ", MAC
 
