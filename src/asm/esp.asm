@@ -30,6 +30,11 @@ SLIP                    proc
                         dl 0x00001800
                         dl 0x4010E000
   Stub1Len              equ $-Stub1                     ; Stub1 should be 16 bytes long
+  Stub2:                dl 0x00000300
+                        dl 0x00000001
+                        dl 0x00001800
+                        dl 0x3FFFABA4
+  Stub2Len              equ $-Stub2                     ; Stub2 should be 16 bytes long
   DataBlock:            dl 0x00000000                   ; len(data)
                         dl 0x00000000                   ; block number
                         dl 0x00000000                   ; unk1
@@ -40,17 +45,9 @@ pend
 
 ESPSetDataBlockHeaderProc proc
                         ld (SLIP.DataBlock), hl
-                        ld (SLIP.DataBlock+2), de
-                        ld (SLIP.DataBlock+4), bc
-                        ld (SLIP.DataBlock+6), ix
-                        ret
-pend
-
-ESPSetDataBlockHeaderProc2 proc
-                        ld (SLIP.DataBlock), hl
-                        ld (SLIP.DataBlock+2), de
+                        ld (SLIP.DataBlock+4), de
                         ld hl, 0
-                        ld (SLIP.DataBlock+4), hl
+                        ld (SLIP.DataBlock+2), hl
                         ld (SLIP.DataBlock+6), hl
                         ret
 pend
@@ -76,12 +73,20 @@ WaitNotBusy:            in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
                         jr nz, WaitNotBusy              ; If busy, keep trying until not busy
                         ld a, (hl)                      ; Otherwise read the next byte of the text to be sent
+CheckC0:
                         cp $C0
-                        jp nz, NoEscape
-                        ld a, $DB                       ; Escape $C0 with $DB $DC
+                        jr nz, CheckDB
+                        ld a, $DB                       ; Escape $C0 by replacing with $DB $DC
                         out (c), a
                         ld a, $DC
-NoEscape:               out (c), a                      ; and end it to the UART TX port
+                        jr NoEsc
+CheckDB:
+                        cp $DB
+                        jr nz, NoEsc
+                        out (c), a                      ; Escape $DB by replacing with $DB $DD
+                        ld a, $DD
+NoEsc:
+                        out (c), a                      ; and send it to the UART TX port
                         inc hl                          ; Move to next byte of the text
                         dec de                          ; Check whether there are any more bytes of text
                         ld a, d

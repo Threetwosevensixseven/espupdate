@@ -144,6 +144,7 @@ ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
                         ld hl, DataLen                  ; This is faster being in hl because we copy to memory
                         ld bc, ErrAddr                  ; This can be in bc because it's just as quick to pop hl later
                         ld ix, 0
+                        ld (SLIP.HeaderCS), ix          ; Clears the header checksum
                         call ESPSendCmdWithDataProc
 mend
 
@@ -154,7 +155,7 @@ ESPSendDataBlock        macro(DataAddr, DataLen, Seq, ErrAddr)
 
                         ld hl, DataLen
                         ld de, Seq
-                        call ESPSetDataBlockHeaderProc2
+                        call ESPSetDataBlockHeaderProc
 
                         ld a, ESP_MEM_DATA
                         ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later

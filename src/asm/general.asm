@@ -159,3 +159,23 @@ Loop:                   sli c                           ; aka SLL/SL1
                         ret                             ; Returns quotient in AC, remainder in HL
 pend
 
+WaitKey                 proc
+                        Border(6)
+                        ei
+Loop1:                  xor a
+                        in a, ($FE)
+                        cpl
+                        and 15
+                        halt
+                        jr nz, Loop1
+Loop2:                  xor a
+                        in a, ($FE)
+                        cpl
+                        and 15
+                        halt
+                        jr z, Loop2
+                        Border(7)
+                        di
+                        ret
+pend
+
