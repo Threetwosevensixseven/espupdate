@@ -34,6 +34,13 @@ Begin:                  di                              ; We run with interrupts
                         cp 8                            ; Exit with error if not a Next. HL still points to err message,
                         jp nz, Return.WithCustomError   ; be careful if adding code between the Next check and here!
 IsANext:
+                        Rst8(esxDOS.M_DOSVERSION)       ; Check if we are running in NextZXOS
+                        ld hl, Err.NotOS                ; If esxDOS (carry set),
+                        jp c, Return.WithCustomError    ; exit with an error.
+                        or a                            ; If not full NextZXOS (a != 0),
+                        ld hl, Err.NotNB                ; exit with an error.
+                        jp nz, Return.WithCustomError   ; We could also do NextZXOS version check if we cared.
+
                         NextRegRead(Reg.Peripheral2)    ; Read Peripheral 2 register.
                         ld (RestoreF8.Saved), a         ; Save current value so it can be restored on exit.
                         and %0111 1111                  ; Clear the F8 enable bit,
@@ -486,19 +493,21 @@ if (UpperCodeLen > $4000)
   zeuserror "DOT command (upper code) is too large to assemble!"
 endif
 
-output_bin "..\\..\\dot\\ESPUPDATE", Start, Length
+output_bin "..\\..\\dot\\ESPUPDATE", Start, Length              ; Binary for project, and for CSpect image.
 
 if enabled UploadNext
-  output_bin "R:\\dot\\ESPUPDATE", Start, Length
+  output_bin "R:\\dot\\ESPUPDATE", Start, Length                ; NextZXOS  dot command (LFN)
+  //output_bin "R:\\dot\\extra\\ESPUPDATE", Start, Length       ; 48K BASIC dot command (LFN)
+  //output_bin "R:\\bin\\ESPUPD", Start, Length                 ; esxDOS    dot command (8+3)
 endif
 
 if enabled CSpect
   if enabled RealESP
-    zeusinvoke "..\\..\\build\\cspect.bat"
+    zeusinvoke "..\\..\\build\\cspect.bat"                      ; Build, copy to SD image, launch CSpect w/ USB ESP
   else
-    zeusinvoke "..\\..\\build\\cspect-emulate-esp.bat"
+    zeusinvoke "..\\..\\build\\cspect-emulate-esp.bat"          ; Build, copy to SD image, launch CSpect w/ emulated ESP
   endif
 else
-  zeusinvoke "..\\..\\build\\builddot.bat"
+  zeusinvoke "..\\..\\build\\builddot.bat"                      ; Just build
 endif
 

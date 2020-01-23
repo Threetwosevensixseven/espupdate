@@ -281,6 +281,8 @@ DataSuccess:            dec hl                          ; If data first byte is 
                         or a                            ; Clear carry for success,
                         ret                             ; and return.
 FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason code for future use
+                        or a
+                        jp z, ErrorCd00                 ; Error code 00 is not a real error, it means success
                         push af
                         PrintMsg(Msg.ErrCd)             ; "Error code: "
                         pop af
@@ -289,7 +291,7 @@ FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason 
                         ld a, CR                        ; Print CR
                         rst 16
                         pop af
-                        scf                             ; Set carry for error,
+ErrorCd00:              scf                             ; Set carry for error,
                         ret                             ; and return.
 FailWithoutReason:      xor a                           ; This returns error reason 0
                         scf

@@ -15,3 +15,6 @@ obj
 /build/get-tools.ps1
 /dot/*.piz
 /diff
+/build/zeus.exe
+/build/zeus.ini
+/build/keymap.dat

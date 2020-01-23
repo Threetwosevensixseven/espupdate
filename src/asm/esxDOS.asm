@@ -4,6 +4,7 @@
 
 esxDOS proc
 
+M_DOSVERSION            equ $88
 M_GETSETDRV             equ $89
 M_P3DOS                 equ $94
 M_GETHANDLE             equ $8D

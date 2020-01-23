@@ -17,7 +17,7 @@ Msg                     proc
 
   Stub1:                db "Uploading stub...", CR, 0
   Stub2:                db "Running stub...", CR, 0
-  Stub3:                db "OHAI, stub running", CR, 0
+  Stub3:                db "Stub running", CR, 0
   Stub4:                db "Configuring flash size...", CR, 0
   Stub5:                db "Flash params set to 0x0221", CR, 0
   Stub6:                db "Uploading 457535 bytes...", CR, 0
@@ -82,6 +82,8 @@ Err                     proc
   Break:                db "D BREAK - CONT repeat", 's'|128
   NoMem:                db "4 Out of memor",        'y'|128
   NotNext:              db "Spectrum Next require", 'd'|128
+  NotOS:                db "NextZXOS require",      'd'|128
+  NotNB:                db "NextBASIC require",     'd'|128
   NoSync:               db "Sync error or no ES",   'P'|128
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
   BadDot:               db "Error reading dot cm",  'd'|128
