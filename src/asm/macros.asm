@@ -114,6 +114,13 @@ ErrorIfNoCarry          macro(ErrAddr)
 Continue:
 mend
 
+ErrorIfNotZero          macro(ErrAddr)
+                        jp z, Continue
+                        ld hl, ErrAddr
+                        jp ErrorProc
+Continue:
+mend
+
 PrintBufferHex          macro(Addr, Len)
                         ld hl, Addr
                         ld de, Len

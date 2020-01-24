@@ -61,22 +61,58 @@ IsANext:
                         call esxDOS.GetHandle
 
                         ; The next <=16KB in the file contains the ESP uploader stubs, additional code and buffers.
-                        ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate two 8KB
+                        ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate three 8KB
                         ; banks, which must be freed before exiting the dot command.
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
                         ld (DeallocateBanks.Upper1), a  ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
                         ld (DeallocateBanks.Upper2), a  ; Save bank number
+                        call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
+                        ld (DeallocateBanks.Upper3), a  ; Save bank number
 
-                        ; Now we can page in the the two 8K banks at $8000 and $A000, and try to load the
+                        ; Now we can page in the the three 8K banks at $8000, $A000 and $C000, and try to load the
                         ; remainder of the dot command code. This paging will need to be undone during cmd exit.
-                        nextreg $55, a                  ; Allocated bank for $A000 was already in A, page it in.
+                        nextreg $56, a                  ; Allocated bank for $C000 was already in A, page it in.
                         ld a, (DeallocateBanks.Upper1)
                         nextreg $54, a                  ; Page in allocated bank for $8000
+                        ld a, (DeallocateBanks.Upper2)
+                        nextreg $54, a                  ; Page in allocated bank for $A000
                         ld hl, $8000                    ; Start loading at $8000
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
+SetUART:
+                        PrintMsg(Msg.SetBaud1)          ; "Using 115200 baud, "
+                        NextRegRead(Reg.VideoTiming)
+                        and %111
+                        push af
+                        ld d, a
+                        ld e, 5
+                        mul
+                        ex de, hl
+                        add hl, Timings.Table
+                        call PrintRst16                 ; "VGA0/../VGA6/HDMI"
+                        PrintMsg(Msg.SetBaud2)          ; " timings"
+                        pop af
+                        add a,a
+                        ld hl, Baud.Table
+                        add hl, a
+                        ld e, (hl)
+                        inc hl
+                        ld d, (hl)
+                        ex de, hl                       ; HL now contains the prescalar baud value
+                        ld (Prescaler), hl
+                        ld a, %x0x1 x000                ; Choose ESP UART, and set most significant bits
+                        ld (Prescaler+2), a             ; of the 17-bit prescalar baud to zero,
+                        ld bc, UART_Sel                 ; by writing to port 0x143B.
+                        out (c), a
+                        dec b                           ; Set baud by writing twice to port 0x143B
+                        out (c), l                      ; Doesn't matter which order they are written,
+                        out (c), h                      ; because bit 7 ensures that it is interpreted correctly.
+                        inc b                           ; Write to UART control port 0x153B
+
+
+
 EnableProgMode:
                         PrintMsg(Msg.ESPProg1)          ; "Setting ESP programming mode..."
 
@@ -367,9 +403,62 @@ UploadStub:
 FailStub:               ErrorAlways(Err.StubRun)
 OkStub:                 PrintMsg(Msg.Stub3)
 
+                        ; flash_set_parameters(self, 0x00100000) [1MB]
+                        ; fl_id = 0
+                        ; total_size = 0x00100000
+                        ; block_size = 64 * 1024
+                        ; sector_size = 4 * 1024
+                        ; page_size = 256
+                        ; status_mask = 0xffff
+                        ; self.command(op, data, chk, timeout=timeout)
+                        ; op      = 11 ESP_SPI_SET_PARAMS
+                        ; data    = 24 bytes, of which:
+                        ;   fl_id       = 0x00000000
+                        ;   total_size  = 0x00100000
+                        ;   block_size  = 0x00010000
+                        ;   sector_size = 0x00001000
+                        ;   page_size   = 0x00000100
+                        ;   status_mask = 0x0000ffff
+                        ; chk     = 0
+                        ; timeout = 3
+                        ESPSendCmdWithData(ESP_SPI_SET_PARAMS, SLIP.CfgFlash, SLIP.CfgFlashLen, Err.FlashSet)
+
+                        ; operation_func(esp, args)
+                        ; write_flash(esp, args)
+                        ; image = _update_image_flash_params(esp, address, args, image), where
+                        ;   address = 0
+                        ;   image   = 1,048,576 bytes
+                        ; # unpack the (potential) image header: some stuff to check this is really a fw image
+                        ; Look at first four bytes:
+                        ; magic           = ESP_IMAGE_MAGIC 0xE9
+                        ; dummy           = ??
+                        ; flash_mode      = 2
+                        ; flash_size_freq = 1
+                        ; if magic <> ESP_IMAGE_MAGIC jp AfterModFlashParams
+
+                        ; Read first four bytes of firmware file
+                        ld hl, $C000                    ; Start loading at $C000
+                        ld bc, $0004                    ; Load 4 bytes of data
+                        call esxDOS.fRead
+                        ErrorIfCarry(Err.ReadFW)
+                        ld hl, $C000
+                        ld a, (hl)
+                        cp ESP_IMAGE_MAGIC
+                        ErrorIfNotZero(Err.NotFW)
+                        inc hl:inc hl:inc hl
+                        ld a, (hl)
+                        //CSBreak()
+                        and $0F
+                        ld (FlashFreq), a               ; flash_freq
+
+                        ; flash_mode = 2 (dio)
+                        ; flash_size = 32 (MB)
 
 
-                        zeusprinthex "Buffer:     ", Buffer
+
+AfterModFlashParams:
+
+                        //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses
                         //zeusprinthex "MAC:         ", MAC
 

@@ -1,10 +1,11 @@
 ; msg.asm
 
 Msg                     proc
-  //Startup:              db "ESP Update Tool v1."
   Startup:              db "ESP UPDATE TOOL v1."
                         BuildNo()
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
+  SetBaud1:             db "Using 115200 baud, ", 0
+  SetBaud2:             db " timings", CR, 0
   SendSync:             db "Syncing...", CR, 0
   ESPProg1:             db "Setting ESP programming mode...", CR, 0
   ESP8266EX:            db "Chip is ESP8266EX", CR, 0
@@ -89,7 +90,10 @@ Err                     proc
   BadDot:               db "Error reading dot cm",  'd'|128
   StubUpload:           db "Error uploading stu",   'b'|128
   StubRun:              db "Failed to start stu",   'b'|128
-  //StubUploadHex         equ $-3
+  FlashSet:             db "Flash param error ",    '1'|128
+  FlashUpd:             db "Flash param error ",    '2'|128
+  ReadFW:               db "Error reading firmwar", 'e'|128
+  NotFW:                db "Not a firmware fil",    'e'|128
 pend
 
 PrintRst16              proc

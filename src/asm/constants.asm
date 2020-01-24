@@ -15,7 +15,9 @@ ESP_OTP_MAC3            equ 0x3ff0005c
 ESP_MEM_BEGIN           equ 0x05
 ESP_MEM_END             equ 0x06
 ESP_MEM_DATA            equ 0x07
+ESP_SPI_SET_PARAMS      equ 0x0b
 ESP_CHECKSUM_MAGIC      equ 0xef
+ESP_IMAGE_MAGIC         equ 0xe9
 
 ; esxDOS
 M_ERRH                  equ $95
@@ -26,6 +28,7 @@ IDE_BANK                equ $01BD
 ; UART
 UART_RxD                equ $143B                       ; Also used to set the baudrate
 UART_TxD                equ $133B                       ; Also reads status
+UART_Sel                equ $153B                       ; Selects between ESP and Pi, and sets upper 3 bits of baud
 UART_SetBaud            equ UART_RxD                    ; Sets baudrate
 UART_GetStatus          equ UART_TxD                    ; Reads status bits
 UART_mRX_DATA_READY     equ %xxxxx 0 0 1                ; Status bit masks
@@ -42,6 +45,7 @@ Reg                     proc
   MachineID             equ $00
   Peripheral2           equ $06
   CPUSpeed              equ $07
+  VideoTiming           equ $11
 pend
 
 ; Chars

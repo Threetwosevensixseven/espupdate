@@ -40,11 +40,14 @@ Upper1 equ $+1:         ld a, $FF                       ; Default value of $FF m
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
 Upper2 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
+Upper3 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
+                        call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
                                                         ; In more robust library code we might want to set these
                                                         ; locations back to $FF before exiting, but here we are
                                                         ; definitely exiting the dot command imminently.
                         nextreg $54, 4                  ; Restore what BASIC is expecting to find at $8000 (16K bank 2)
                         nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
+                        nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
                         ret
 pend
 

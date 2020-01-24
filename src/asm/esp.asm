@@ -43,7 +43,30 @@ SLIP                    proc
   EntryBlock:           dl 0x00000000                   ; int(entrypoint == 0)
                         dl 0x4010E004                   ; entrypoint
   EntryBlockLen         equ $-EntryBlock                ; EntryBlock should be 8 bytes long
+  CfgFlash:             dl 0x00000000                   ; fl_id
+                        dl 0x00100000                   ; total_size
+                        dl 0x00010000                   ; block_size
+                        dl 0x00001000                   ; sector_size
+                        dl 0x00000100                   ; page_size
+                        dl 0x0000ffff                   ; status_mask
+  CfgFlashLen           equ $-CfgFlash                  ; CfgFlash should be 24 bytes long
   LastErr:              ds 0
+pend
+
+Baud                    proc Table:
+                        dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
+pend
+
+Timings:                proc Table:
+  ;   Text   Index  Notes
+  db "VGA0", 0 ; 0  Timing 0
+  db "VGA1", 0 ; 1  Timing 1
+  db "VGA2", 0 ; 2  Timing 2
+  db "VGA3", 0 ; 3  Timing 3
+  db "VGA4", 0 ; 4  Timing 4
+  db "VGA5", 0 ; 5  Timing 5
+  db "VGA6", 0 ; 6  Timing 6
+  db "HDMI", 0 ; 7  Timing 7
 pend
 
 ESPSetDataBlockHeaderProc proc

@@ -4,6 +4,7 @@
 SavedArgs:              dw 0
 
 ; UART
+Prescaler:              ds 3
 Dummy32:                ds 4
 
 ; ESP
@@ -22,6 +23,7 @@ OUI3:                   ds 1
 OUI4:                   ds 1
 OUI5:                   ds 1
 OUI6:                   ds 1
+FlashFreq:              ds 1
 
 Features                proc
   Is8285:               ds 1

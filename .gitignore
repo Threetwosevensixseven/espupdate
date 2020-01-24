@@ -18,3 +18,4 @@ obj
 /build/zeus.exe
 /build/zeus.ini
 /build/keymap.dat
+/fw/ESP8266_FULL_V3.3_SPUGS/ESP8266_stub_flashsize.bin

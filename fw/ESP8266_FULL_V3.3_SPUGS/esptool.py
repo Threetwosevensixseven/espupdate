@@ -745,6 +745,13 @@ class ESPLoader(object):
         sector_size = 4 * 1024
         page_size = 256
         status_mask = 0xffff
+
+        #dbytes = struct.pack('<IIIIII', fl_id, total_size, block_size, sector_size, page_size, status_mask)
+        #f = open('ESP8266_stub_flashsize.bin', 'w+b')
+        #binary_format = bytearray(dbytes)
+        #f.write(binary_format)
+        #f.close()
+
         self.check_command("set SPI params", ESP32ROM.ESP_SPI_SET_PARAMS,
                            struct.pack('<IIIIII', fl_id, total_size, block_size, sector_size, page_size, status_mask))
 
