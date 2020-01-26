@@ -81,6 +81,89 @@ IsANext:
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
+ReadFW:
+                        PrintMsg(Msg.ReadFW)
+                        ld l, 1                         ; L = mode:  1 - forward from current position
+                        ld bc, 0
+                        ld d, b
+                        ld e, b                         ; BCDE = bytes to seek
+                        call esxDOS.fSeek               ;
+                        ErrorIfCarry(Err.ReadFW)        ; BCDE = Current file pointer
+                        ld (FilePointer), de            ; Save file pointer
+                        ld (FilePointer+2), bc
+                        ld hl, $C000                    ; Start loading at $C000
+                        ld bc, $0100                    ; Load 256 bytes of data
+                        call esxDOS.fRead
+                        ErrorIfCarry(Err.ReadFW)
+                        ld hl, $C000                    ; Check magic bytes NXESP
+                        ld a, (hl)
+                        cp 'N'
+                        jr nz, BadFormat
+                        inc hl
+                        ld a, (hl)
+                        cp 'X'
+                        jr nz, BadFormat
+                        inc hl
+                        ld a, (hl)
+                        cp 'E'
+                        jr nz, BadFormat
+                        inc hl
+                        ld a, (hl)
+                        cp 'S'
+                        jr nz, BadFormat
+                        inc hl
+                        ld a, (hl)
+                        cp 'P'
+                        jr nz, BadFormat
+                        inc hl
+                        inc hl
+                        inc hl
+                        inc hl
+                        inc hl
+                        ld a, (hl)                      ; Read Version Length
+                        cp 11                           ; Can't be more than 10 chars
+                        jr nc, BadFormat
+                        ld c, a                         ; Save version
+                        ld b, 0
+                        ld de, FWVersion
+                        inc hl
+                        ldir
+                        xor a
+                        ld (de), a                      ; Add null terminator
+                        ld a, (hl)                      ; Save flash params
+                        ld (FlashParams), a
+                        inc hl
+                        ld a, (hl)
+                        ld (FlashParams+1), a
+                        inc hl
+                        ld a, (hl)                      ; Read MD5 length
+                        cp 32                           ; Must be 32
+                        jr nz, BadFormat
+                        inc hl
+                        ld de, FWMD5
+                        ld bc, 32
+                        ldir                            ; hl now points to start of compressed firmware
+                        ld de, $C000
+                        or a
+                        sbc hl, de                      ; hl = number of bytes past the original file pointer
+                        ld de, (FilePointer)
+                        add hl, de
+                        ld (FilePointer), hl
+                        jr nc, NoSeekCarry              ; If we crossed $FFFF, increase the upper 2 bytes by 1
+                        ld hl, (FilePointer+2)
+                        inc hl
+                        ld (FilePointer+2), hl
+NoSeekCarry:            ld bc, (FilePointer+2)
+                        ld de, (FilePointer)            ; BCDE = absolute file position of compressed firmware
+                        ld l, 0                         ;  L    = mode:  0 - from start of file
+                        call esxDOS.fSeek               ;
+                        ErrorIfCarry(Err.ReadFW)        ; BCDE = Current file pointer
+                        jr FWReadFinished
+BadFormat:              ErrorAlways(Err.BadFW)
+FWReadFinished:         PrintMsg(Msg.FWVer)
+                        PrintMsg(FWVersion)
+                        PrintMsg(Msg.EOL)
+
 SetUARTStdSpeed:
                         SetUARTBaud(Baud.b115200, Msg.b115200)
 EnableProgMode:
@@ -390,7 +473,6 @@ UploadStub:
                         jr OkStub
 FailStub:               ErrorAlways(Err.StubRun)
 OkStub:                 PrintMsg(Msg.Stub3)
-
 
                         if enabled FastUART
                           SetUARTBaud(Baud.b1152000, Msg.b1152000)

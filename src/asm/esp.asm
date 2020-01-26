@@ -10,7 +10,6 @@ SLIP                    proc
                         ds 32, $55                      ; Payload part 2
                         db $C0                          ; SLIP Frame end
   SyncLen               equ $-Sync
-
   ReadReg:              db $C0, $00                     ; Frame, request - timeout 3
                         db $0A                          ; ESP_READ_REG command op
                         dw 4                            ; Length 4 (of register address)
@@ -59,7 +58,6 @@ pend
 Baud                    proc Table:
 b115200:                dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
 b1152000:               dw $8018, $8019, $801A, $801A, $801B, $801C, $801D, $8017
-                        //dw $8018, $8018, $8019, $801A, $801A, $801B, $801C, $8017
 pend
 
 Timings:                proc Table:

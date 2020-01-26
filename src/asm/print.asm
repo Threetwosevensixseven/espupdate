@@ -5,10 +5,12 @@ Msg                     proc
                         BuildNo()
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
+  ReadFW:               db "Reading firmware...", CR, 0
+  FWVer:                db "Updating firmware to v", 0
   SetBaud1:             db "Using ", 0
   b115200:              db "115200", 0
   b1152000:             db "1152000", 0
-  SetBaud2:             db "baud, ", 0
+  SetBaud2:             db " baud, ", 0
   SetBaud3:             db " timings", CR, 0
   SendSync:             db "Syncing...", CR, 0
   ResetESP:             db "Resetting ESP and retrying...", CR, 0
@@ -99,6 +101,7 @@ Err                     proc
   FlashUpd:             db "Flash param error ",    '2'|128
   ReadFW:               db "Error reading firmwar", 'e'|128
   NotFW:                db "Not a firmware fil",    'e'|128
+  BadFW:                db "Firmware is bad forma", 't'|128
   BaudChg:              db "Error changing bau",    'd'|128
 pend
 

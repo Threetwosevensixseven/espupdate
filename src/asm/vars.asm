@@ -24,7 +24,10 @@ OUI4:                   ds 1
 OUI5:                   ds 1
 OUI6:                   ds 1
 FlashFreq:              ds 1
-FlashParams:            dw 0x2102
+FlashParams:            ds 2;dw 0x2102
+FWVersion:              ds 11                   ; 10 chars with terminating null
+FWMD5:                  ds 32
+FilePointer:            ds 4
 
 Features                proc
   Is8285:               ds 1
