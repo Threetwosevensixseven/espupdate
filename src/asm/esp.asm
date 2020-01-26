@@ -50,11 +50,16 @@ SLIP                    proc
                         dl 0x00000100                   ; page_size
                         dl 0x0000ffff                   ; status_mask
   CfgFlashLen           equ $-CfgFlash                  ; CfgFlash should be 24 bytes long
+  ChgBaud:              dl 0x00119400                   ; New baud (1152000)
+                        dl 0x0001c200                   ; Original baud (115200)
+  ChgBaudLen            equ $-ChgBaud                   ; ChgBaud should be 8 bytes long
   LastErr:              ds 0
 pend
 
 Baud                    proc Table:
-                        dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
+b115200:                dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
+b1152000:               dw $8018, $8019, $801A, $801A, $801B, $801C, $801D, $8017
+                        //dw $8018, $8018, $8019, $801A, $801A, $801B, $801C, $8017
 pend
 
 Timings:                proc Table:
@@ -398,4 +403,40 @@ Finish:                 pop af                          ; This is the calculated
                         ret
 pend
 
+SetUARTBaudProc         proc                            ; hl = BaudTable, de = BaudMsg
+                        push de
+                        ld (BaudTable), hl
+                        PrintMsg(Msg.SetBaud1)          ; "Using "
+                        pop hl
+                        call PrintRst16                 ; Print BaudMsg
+                        PrintMsg(Msg.SetBaud2)          ; " baud, "
+                        NextRegRead(Reg.VideoTiming)
+                        and %111
+                        push af
+                        ld d, a
+                        ld e, 5
+                        mul
+                        ex de, hl
+                        add hl, Timings.Table
+                        call PrintRst16                 ; "VGA0/../VGA6/HDMI"
+                        PrintMsg(Msg.SetBaud3)          ; " timings"
+                        pop af
+                        add a,a
+BaudTable equ $+1:      ld hl, SMC                      ; Restore BaudTable
+                        add hl, a
+                        ld e, (hl)
+                        inc hl
+                        ld d, (hl)
+                        ex de, hl                       ; HL now contains the prescalar baud value
+                        ld (Prescaler), hl
+                        ld a, %x0x1 x000                ; Choose ESP UART, and set most significant bits
+                        ld (Prescaler+2), a             ; of the 17-bit prescalar baud to zero,
+                        ld bc, UART_Sel                 ; by writing to port 0x143B.
+                        out (c), a
+                        dec b                           ; Set baud by writing twice to port 0x143B
+                        out (c), l                      ; Doesn't matter which order they are written,
+                        out (c), h                      ; because bit 7 ensures that it is interpreted correctly.
+                        inc b                           ; Write to UART control port 0x153B
+                        ret
+pend
 

@@ -81,38 +81,8 @@ IsANext:
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
-SetUART:
-                        PrintMsg(Msg.SetBaud1)          ; "Using 115200 baud, "
-                        NextRegRead(Reg.VideoTiming)
-                        and %111
-                        push af
-                        ld d, a
-                        ld e, 5
-                        mul
-                        ex de, hl
-                        add hl, Timings.Table
-                        call PrintRst16                 ; "VGA0/../VGA6/HDMI"
-                        PrintMsg(Msg.SetBaud2)          ; " timings"
-                        pop af
-                        add a,a
-                        ld hl, Baud.Table
-                        add hl, a
-                        ld e, (hl)
-                        inc hl
-                        ld d, (hl)
-                        ex de, hl                       ; HL now contains the prescalar baud value
-                        ld (Prescaler), hl
-                        ld a, %x0x1 x000                ; Choose ESP UART, and set most significant bits
-                        ld (Prescaler+2), a             ; of the 17-bit prescalar baud to zero,
-                        ld bc, UART_Sel                 ; by writing to port 0x143B.
-                        out (c), a
-                        dec b                           ; Set baud by writing twice to port 0x143B
-                        out (c), l                      ; Doesn't matter which order they are written,
-                        out (c), h                      ; because bit 7 ensures that it is interpreted correctly.
-                        inc b                           ; Write to UART control port 0x153B
-
-
-
+SetUARTStdSpeed:
+                        SetUARTBaud(Baud.b115200, Msg.b115200)
 EnableProgMode:
                         PrintMsg(Msg.ESPProg1)          ; "Setting ESP programming mode..."
 
@@ -160,8 +130,26 @@ SyncLoop:               push bc
                         call ESPReadIntoBuffer
                         ESPValidateCmd($08, Dummy32)    ; Check whether this we got a sync response
 //TestError:            scf                             ; You can use this forced error to test how errors are handled
-                        ErrorIfCarry(Err.NoSync)
-                        //PrintMsg(Msg.SyncOK)
+
+
+
+                        //CSBreak()
+SyncPass equ $+1:       jp c, NotSynced1                ; If we didn't sync the first time,
+                        jr ReadEfuses
+NotSynced1:             ld hl,NotSynced2
+                        ld (SyncPass), hl
+                        PrintMsg(Msg.ResetESP)          ; Reset and try a second time.
+                        nextreg 2, 128                  ; Set RST low
+                        call Wait80Frames               ; Hold in reset a really long time
+                        nextreg 2, 0                    ; Set RST high
+                        call Wait80Frames               ; Wait a really, really long time
+                        call Wait80Frames
+                        jp EnableProgMode
+NotSynced2:             ErrorAlways(Err.NoSync)         ; Error on second failure
+
+
+
+
 
 ReadEfuses:
                         //PrintMsg(Msg.Fuse1)           ; "Reading eFuses..."
@@ -403,6 +391,17 @@ UploadStub:
 FailStub:               ErrorAlways(Err.StubRun)
 OkStub:                 PrintMsg(Msg.Stub3)
 
+
+                        if enabled FastUART
+                          SetUARTBaud(Baud.b1152000, Msg.b1152000)
+                          ; esp.change_baud(1152000)
+                          ESPSendCmdWithData(ESP_CHANGE_BAUDRATE, SLIP.ChgBaud, SLIP.ChgBaudLen, Err.BaudChg)
+                          ; print("Changed.")
+                          ; self._set_port_baudrate(baud)
+                          ; time.sleep(0.05)  # get rid of crap sent during baud rate change
+                          ; self.flush_input()
+                        endif
+
                         ; flash_set_parameters(self, 0x00100000) [1MB]
                         ; fl_id = 0
                         ; total_size = 0x00100000
@@ -421,7 +420,7 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ;   status_mask = 0x0000ffff
                         ; chk     = 0
                         ; timeout = 3
-                        ESPSendCmdWithData(ESP_SPI_SET_PARAMS, SLIP.CfgFlash, SLIP.CfgFlashLen, Err.FlashSet)
+                        //ESPSendCmdWithData(ESP_SPI_SET_PARAMS, SLIP.CfgFlash, SLIP.CfgFlashLen, Err.FlashSet)
 
                         ; operation_func(esp, args)
                         ; write_flash(esp, args)
@@ -437,6 +436,7 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; if magic <> ESP_IMAGE_MAGIC jp AfterModFlashParams
 
                         ; Read first four bytes of firmware file
+                        /*
                         ld hl, $C000                    ; Start loading at $C000
                         ld bc, $0004                    ; Load 4 bytes of data
                         call esxDOS.fRead
@@ -450,13 +450,29 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         //CSBreak()
                         and $0F
                         ld (FlashFreq), a               ; flash_freq
+                        */
 
+                        ; flash_freq = 1 (26m)
                         ; flash_mode = 2 (dio)
                         ; flash_size = 32 (MB)
-
-
+                        ; flash_params = struct.pack(b'BB', flash_mode, flash_size + flash_freq) = 0x2102
+                        ; flash_mode appears first, flash_size + flash_freq appears second
+                        ; replace bytes 2 and 3 (zero-based) of image with these two bytes
+                        PrintMsg(Msg.Stub5)
+                        ld a, (FlashParams)
+                        call PrintAHexNoSpace
+                        ld a, (FlashParams+1)
+                        call PrintAHexNoSpace
+                        PrintMsg(Msg.EOL)
 
 AfterModFlashParams:
+
+                        ; calcmd5 = hashlib.md5(image).hexdigest() = '03192f512d08b14be06b74f98e109ee0'
+                        ; uncsize = len(image) = 1048576              03192f512d08b14be06b74f98e109ee0
+
+
+
+
 
                         //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses

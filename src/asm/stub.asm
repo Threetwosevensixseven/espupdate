@@ -22,5 +22,3 @@ ESP8266StubData:
 import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_data.bin"
 ESP8266StubDataLen      equ $-1
 
-zeusprinthex ESP8266StubDataLen
-

@@ -172,3 +172,9 @@ ESPSendDataBlock        macro(DataAddr, DataLen, Seq, ErrAddr)
                         call ESPSendCmdWithDataProc
 mend
 
+SetUARTBaud             macro(BaudTable, BaudMsg)
+                        ld hl, BaudTable
+                        ld de, BaudMsg
+                        call SetUARTBaudProc
+mend
+

@@ -3,7 +3,7 @@
 C:
 CD %~dp0
 
-AppendFW.exe 24576 ..\dot\ESPUPDATE ..\fw\ESP8266_FULL_V3.3_SPUGS\ESP8266_FULL_V3.3_SPUGS.bin
+AppendFW.exe 24576 ..\dot\ESPUPDATE ..\fw\ESP8266_FULL_V3.3_SPUGS\ESP8266_FULL_V3.3_SPUGS.bin -f=0x0221 -v=3.3.0.1
 ZXVersion.exe
 pskill.exe -t cspect.exe
 hdfmonkey.exe put C:\spec\cspect-next-2gb.img ..\dot\espupdate dot

@@ -24,6 +24,7 @@ OUI4:                   ds 1
 OUI5:                   ds 1
 OUI6:                   ds 1
 FlashFreq:              ds 1
+FlashParams:            dw 0x2102
 
 Features                proc
   Is8285:               ds 1

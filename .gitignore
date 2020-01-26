@@ -19,3 +19,7 @@ obj
 /build/zeus.ini
 /build/keymap.dat
 /fw/ESP8266_FULL_V3.3_SPUGS/ESP8266_stub_flashsize.bin
+/fw/ESP8266_FULL_V3.3_SPUGS/ESP8266_FULL_V3.3_SPUGS.zip
+/build/AppendFW.exe.config
+/build/AppendFW.vshost.exe.config
+/src/csharp/packages

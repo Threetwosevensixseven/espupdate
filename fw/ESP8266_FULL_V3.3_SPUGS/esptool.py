@@ -746,11 +746,13 @@ class ESPLoader(object):
         page_size = 256
         status_mask = 0xffff
 
+        """
         #dbytes = struct.pack('<IIIIII', fl_id, total_size, block_size, sector_size, page_size, status_mask)
         #f = open('ESP8266_stub_flashsize.bin', 'w+b')
         #binary_format = bytearray(dbytes)
         #f.write(binary_format)
         #f.close()
+        """
 
         self.check_command("set SPI params", ESP32ROM.ESP_SPI_SET_PARAMS,
                            struct.pack('<IIIIII', fl_id, total_size, block_size, sector_size, page_size, status_mask))
@@ -2233,9 +2235,19 @@ def _update_image_flash_params(esp, address, args, image):
         flash_size = esp.parse_flash_size_arg(args.flash_size)
 
     flash_params = struct.pack(b'BB', flash_mode, flash_size + flash_freq)
+
+    #f = open('..\\..\\diff\_flash_params.bin', 'w+b')
+    #binary_format = bytearray(flash_params)
+    #f.write(binary_format)
+    #f.close()
+
     if flash_params != image[2:4]:
         print('Flash params set to 0x%04x' % struct.unpack(">H", flash_params))
         image = image[0:2] + flash_params + image[4:]
+        #f = open('..\\..\\diff\_image_rewritten.bin', 'w+b')
+        #binary_format = bytearray(image)
+        #f.write(binary_format)
+        #f.close()
     return image
 
 
@@ -2269,6 +2281,12 @@ def write_flash(esp, args):
         if args.compress:
             uncimage = image
             image = zlib.compress(uncimage, 9)
+
+            #f = open('..\\..\\diff\_image_zlib.bin', 'w+b')
+            #binary_format = bytearray(image)
+            #f.write(binary_format)
+            #f.close()
+
             ratio = uncsize / len(image)
             blocks = esp.flash_defl_begin(uncsize, len(image), address)
         else:

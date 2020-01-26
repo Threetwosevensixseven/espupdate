@@ -4,9 +4,14 @@ Msg                     proc
   Startup:              db "ESP UPDATE TOOL v1."
                         BuildNo()
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
-  SetBaud1:             db "Using 115200 baud, ", 0
-  SetBaud2:             db " timings", CR, 0
+  EOL:                  db CR, 0
+  SetBaud1:             db "Using ", 0
+  b115200:              db "115200", 0
+  b1152000:             db "1152000", 0
+  SetBaud2:             db "baud, ", 0
+  SetBaud3:             db " timings", CR, 0
   SendSync:             db "Syncing...", CR, 0
+  ResetESP:             db "Resetting ESP and retrying...", CR, 0
   ESPProg1:             db "Setting ESP programming mode...", CR, 0
   ESP8266EX:            db "Chip is ESP8266EX", CR, 0
   ESP8285:              db "Chip is ESP8285", CR, 0
@@ -20,7 +25,7 @@ Msg                     proc
   Stub2:                db "Running stub...", CR, 0
   Stub3:                db "Stub running", CR, 0
   Stub4:                db "Configuring flash size...", CR, 0
-  Stub5:                db "Flash params set to 0x0221", CR, 0
+  Stub5:                db "Flash params set to 0x", 0
   Stub6:                db "Uploading 457535 bytes...", CR, 0
 
   Write1:               db "Writing at 0x00000000 (03%)", 0
@@ -94,6 +99,7 @@ Err                     proc
   FlashUpd:             db "Flash param error ",    '2'|128
   ReadFW:               db "Error reading firmwar", 'e'|128
   NotFW:                db "Not a firmware fil",    'e'|128
+  BaudChg:              db "Error changing bau",    'd'|128
 pend
 
 PrintRst16              proc

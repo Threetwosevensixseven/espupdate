@@ -4,6 +4,7 @@
 ResetWait               equ 5
 DisableScroll           equ false
 TestWorkflow            equ false
+FastUART                equ false
 WriteDelay              equ 80
 Left11                  equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
 Left6                   equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
@@ -16,8 +17,10 @@ ESP_MEM_BEGIN           equ 0x05
 ESP_MEM_END             equ 0x06
 ESP_MEM_DATA            equ 0x07
 ESP_SPI_SET_PARAMS      equ 0x0b
+ESP_CHANGE_BAUDRATE     equ 0x0f
 ESP_CHECKSUM_MAGIC      equ 0xef
 ESP_IMAGE_MAGIC         equ 0xe9
+
 
 ; esxDOS
 M_ERRH                  equ $95
