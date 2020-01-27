@@ -52,6 +52,11 @@ SLIP                    proc
   ChgBaud:              dl 0x00119400                   ; New baud (1152000)
                         dl 0x0001c200                   ; Original baud (115200)
   ChgBaudLen            equ $-ChgBaud                   ; ChgBaud should be 8 bytes long
+  FlashBlock:           dl 0x00100000                   ; uncompressed total size (1MB)
+                        dl 0x0000001c                   ; total blocks (28)
+                        dl 0x00004000                   ; flash write size (16KB)
+                        dl 0x00000000                   ; address (0)
+  FlashBlockLen         equ $-FlashBlock                ; FlashBlock should be 16 bytes long
   LastErr:              ds 0
 pend
 

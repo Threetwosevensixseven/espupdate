@@ -69,14 +69,19 @@ IsANext:
                         ld (DeallocateBanks.Upper2), a  ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
                         ld (DeallocateBanks.Upper3), a  ; Save bank number
+                        call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
+                        ld (DeallocateBanks.Upper4), a  ; Save bank number
 
-                        ; Now we can page in the the three 8K banks at $8000, $A000 and $C000, and try to load the
+                        ; Now we can page in the four 8K banks at $8000, $A000, $C000 and $E000, and try to load the
                         ; remainder of the dot command code. This paging will need to be undone during cmd exit.
-                        nextreg $56, a                  ; Allocated bank for $C000 was already in A, page it in.
+                        nextreg $57, a                  ; Allocated bank for $E000 was already in A, page it in.
                         ld a, (DeallocateBanks.Upper1)
                         nextreg $54, a                  ; Page in allocated bank for $8000
                         ld a, (DeallocateBanks.Upper2)
-                        nextreg $54, a                  ; Page in allocated bank for $A000
+                        nextreg $55, a                  ; Page in allocated bank for $A000
+                        ld a, (DeallocateBanks.Upper3)
+                        nextreg $56, a                  ; Page in allocated bank for $C000
+
                         ld hl, $8000                    ; Start loading at $8000
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
@@ -214,9 +219,6 @@ SyncLoop:               push bc
                         ESPValidateCmd($08, Dummy32)    ; Check whether this we got a sync response
 //TestError:            scf                             ; You can use this forced error to test how errors are handled
 
-
-
-                        //CSBreak()
 SyncPass equ $+1:       jp c, NotSynced1                ; If we didn't sync the first time,
                         jr ReadEfuses
 NotSynced1:             ld hl,NotSynced2
@@ -229,10 +231,6 @@ NotSynced1:             ld hl,NotSynced2
                         call Wait80Frames
                         jp EnableProgMode
 NotSynced2:             ErrorAlways(Err.NoSync)         ; Error on second failure
-
-
-
-
 
 ReadEfuses:
                         //PrintMsg(Msg.Fuse1)           ; "Reading eFuses..."
@@ -442,10 +440,10 @@ UploadStub:
                         ;   Ignore what the PyCharm debugger says - it is showing 14 bytes instead of 16 :(
 
                         ESPSendCmdWithData(ESP_MEM_BEGIN, SLIP.Stub1, SLIP.Stub1Len, Err.StubUpload)
-                        ESPSendDataBlock(ESP8266StubText+0x0000, 0x1800, 0, Err.StubUpload)
-                        ESPSendDataBlock(ESP8266StubText+0x1800, 0x0760, 1, Err.StubUpload)
+                        ESPSendDataBlock(ESP_MEM_DATA, ESP8266StubText+0x0000, 0x1800, 0, Err.StubUpload)
+                        ESPSendDataBlock(ESP_MEM_DATA, ESP8266StubText+0x1800, 0x0760, 1, Err.StubUpload)
                         ESPSendCmdWithData(ESP_MEM_BEGIN, SLIP.Stub2, SLIP.Stub2Len, Err.StubUpload)
-                        ESPSendDataBlock(ESP8266StubData+0x0000, 0x0300, 0, Err.StubUpload)
+                        ESPSendDataBlock(ESP_MEM_DATA, ESP8266StubData+0x0000, 0x0300, 0, Err.StubUpload)
 
                         ; Run stub
                         PrintMsg(Msg.Stub2)
@@ -517,23 +515,6 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; flash_size_freq = 1
                         ; if magic <> ESP_IMAGE_MAGIC jp AfterModFlashParams
 
-                        ; Read first four bytes of firmware file
-                        /*
-                        ld hl, $C000                    ; Start loading at $C000
-                        ld bc, $0004                    ; Load 4 bytes of data
-                        call esxDOS.fRead
-                        ErrorIfCarry(Err.ReadFW)
-                        ld hl, $C000
-                        ld a, (hl)
-                        cp ESP_IMAGE_MAGIC
-                        ErrorIfNotZero(Err.NotFW)
-                        inc hl:inc hl:inc hl
-                        ld a, (hl)
-                        //CSBreak()
-                        and $0F
-                        ld (FlashFreq), a               ; flash_freq
-                        */
-
                         ; flash_freq = 1 (26m)
                         ; flash_mode = 2 (dio)
                         ; flash_size = 32 (MB)
@@ -547,10 +528,40 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         call PrintAHexNoSpace
                         PrintMsg(Msg.EOL)
 
-AfterModFlashParams:
+                        ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
+                        ; blocks = esp.flash_defl_begin(1048576, 457535, 0)
+                        ; blocks = esp.flash_defl_begin(0x100000, 0x6FB3F, 0)
+                        ; num_blocks = (compsize + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 28
+                        ; erase_blocks = (size + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 64
+                        ; write_size = size = 1048576
+                        ; struct.pack('<IIII', write_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
+                        ; FLASH_WRITE_SIZE = 0x4000 (16K)
+                        ; offset = 0
+                        ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
 
-                        ; calcmd5 = hashlib.md5(image).hexdigest() = '03192f512d08b14be06b74f98e109ee0'
-                        ; uncsize = len(image) = 1048576              03192f512d08b14be06b74f98e109ee0
+                        ; print('\rWriting at 0x%08x... (%d %%)' % (address + seq * esp.FLASH_WRITE_SIZE,
+                        ; 100 * (seq + 1) // blocks), end='')
+                        ; block = image[0:esp.FLASH_WRITE_SIZE]
+                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
+                        ; ratio = 2.3 (maybee 7 frames?)
+                        ; image = image[esp.FLASH_WRITE_SIZE:]
+                        ; seq += 1
+                        ; written += len(block)
+
+                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
+                        ; self.ESP_FLASH_DEFL_DATA, struct.pack('<IIII', len(data), seq, 0, 0) + data,
+                        ;   self.checksum(data), timeout=timeout) - line 632
+                        //ESPSendCmdWithData(ESP_FLASH_DEFL_DATA, SLIP.Stub1, SLIP.Stub1Len, Err.StubUpload)
+
+                        ld hl, $C000                    ; Load 16K of compressed firmware data
+                        ld bc, $4000                    ; into the buffer at $C000
+                        ld (FlashStack), sp
+                        ld sp, $4000
+                        call esxDOS.fRead
+FlashStack equ $+1:     ld sp, SMC
+                        ErrorIfCarry(Err.ReadFW)
+                        //call WaitKey
+                        //ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
 
 
 

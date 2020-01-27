@@ -18,9 +18,10 @@ ESP_MEM_END             equ 0x06
 ESP_MEM_DATA            equ 0x07
 ESP_SPI_SET_PARAMS      equ 0x0b
 ESP_CHANGE_BAUDRATE     equ 0x0f
+ESP_FLASH_DEFL_BEGIN    equ 0x10
+ESP_FLASH_DEFL_DATA     equ 0x11
 ESP_CHECKSUM_MAGIC      equ 0xef
 ESP_IMAGE_MAGIC         equ 0xe9
-
 
 ; esxDOS
 M_ERRH                  equ $95

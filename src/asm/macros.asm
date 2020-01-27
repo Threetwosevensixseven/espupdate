@@ -155,7 +155,7 @@ ESPSendCmdWithData      macro(Op, DataAddr, DataLen, ErrAddr)
                         call ESPSendCmdWithDataProc
 mend
 
-ESPSendDataBlock        macro(DataAddr, DataLen, Seq, ErrAddr)
+ESPSendDataBlock        macro(Opcode, DataAddr, DataLen, Seq, ErrAddr)
                         ld hl, DataAddr
                         ld bc, DataLen
                         call ESPSetDataBlockProc
@@ -164,7 +164,7 @@ ESPSendDataBlock        macro(DataAddr, DataLen, Seq, ErrAddr)
                         ld de, Seq
                         call ESPSetDataBlockHeaderProc
 
-                        ld a, ESP_MEM_DATA
+                        ld a, Opcode
                         ld de, DataAddr                 ; This can be in de because it's just as quick to pop hl later
                         ld hl, DataLen+16               ; This is faster being in hl because we copy to memory
                         ld bc, ErrAddr                  ; This can be in bc because it's just as quick to pop hl later
