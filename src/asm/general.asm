@@ -57,40 +57,7 @@ pend
 RestoreSpeed            proc
 Saved equ $+3:          nextreg Reg.CPUSpeed, SMC       ; Restore speed
                         ret
-/*
-                        // This section is just for testing speed restore with Garry
-                        PrintMsg(Msg.Speed1)            ; "Restoring speed to "
-Saved equ $+1:          ld a, SMC                       ; This is written into by code at the start of the dot cmd
-                        push af                         ; Save for later
-                        nextreg Reg.CPUSpeed, a         ; Restore speed
-                        and %11                         ; Lookup speed (0..3) in messages table
-                        add a, a                        ; * 2
-                        ld hl, Speeds.Table
-                        add hl, a
-                        ld e, (hl)
-                        inc hl
-                        ld d, (hl)
-                        ex de, hl                       ; HL now contains one of the four speed msg addresses
-                        call PrintRst16                 ; Print speed
-                        PrintMsg(Msg.Speed2)            ; " (0x"
-                        pop af                          ; Get actual restored speed
-                        call PrintAHexNoSpace           ; Print hex digits of register value
-                        ld a, ')'                       ; Print ")", CR
-                        rst 16
-                        ld a, CR
-                        rst 16
-                        WaitFrames(100)
-                        ret
-*/
 pend
-
-/*Speeds proc Table:
-  ;  MsgAddr     Index  Notes
-  dw Msg.Speed35 ;   0  Prints "3.5Mhz"
-  dw Msg.Speed07 ;   1  Prints "7Mhz"
-  dw Msg.Speed14 ;   2  Prints "14Mhz"
-  dw Msg.Speed28 ;   3  Prints "28Mhz"
-pend*/
 
 Return                  proc
 ToBasic:
@@ -133,20 +100,12 @@ Deallocate8KBank        proc                            ; Takes bank to dealloca
 pend
 
 Wait5Frames             proc
-                        ei
-                        for n = 1 to 5
-                          halt
-                        next
-                        di
+                        WaitFrames(5)
                         ret
 pend
 
 Wait80Frames            proc
-                        ei
-                        for n = 1 to 80
-                          halt
-                        next
-                        di
+                        WaitFrames(80)
                         ret
 pend
 
@@ -182,6 +141,21 @@ Loop2:                  xor a
                         jr z, Loop2
                         Border(7)
                         di
+                        ret
+pend
+
+WaitFramesProc          proc
+                        di
+                        ld (SavedStack), sp             ; Save stack
+                        ld sp, $8000                    ; Put stack in upper 16K so FRAMES gets update
+                        ei
+Loop:                   halt
+                        dec bc
+                        ld a, b
+                        or c
+                        jr nz, Loop
+                        di
+SavedStack equ $+1:     ld sp, SMC
                         ret
 pend
 

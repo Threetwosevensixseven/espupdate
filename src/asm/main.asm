@@ -16,6 +16,7 @@ Start:
                         db 0
 Begin:                  di                              ; We run with interrupts off apart from printing and halts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
+                        ld sp, $4000                    ; Put stack safe inside dot command
                         ld (SavedArgs), hl              ; Save args for later
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls
                         PrintMsg(Msg.Startup)           ; "ESP Update Tool v1.x"
@@ -168,7 +169,6 @@ BadFormat:              ErrorAlways(Err.BadFW)
 FWReadFinished:         PrintMsg(Msg.FWVer)
                         PrintMsg(FWVersion)
                         PrintMsg(Msg.EOL)
-
 SetUARTStdSpeed:
                         SetUARTBaud(Baud.b115200, Msg.b115200)
 EnableProgMode:
@@ -217,10 +217,9 @@ SyncLoop:               push bc
                         //PrintMsg(Msg.RcvSync)
                         call ESPReadIntoBuffer
                         ESPValidateCmd($08, Dummy32)    ; Check whether this we got a sync response
-//TestError:            scf                             ; You can use this forced error to test how errors are handled
 
 SyncPass equ $+1:       jp c, NotSynced1                ; If we didn't sync the first time,
-                        jr ReadEfuses
+                        jr Synced
 NotSynced1:             ld hl,NotSynced2
                         ld (SyncPass), hl
                         PrintMsg(Msg.ResetESP)          ; Reset and try a second time.
@@ -231,6 +230,7 @@ NotSynced1:             ld hl,NotSynced2
                         call Wait80Frames
                         jp EnableProgMode
 NotSynced2:             ErrorAlways(Err.NoSync)         ; Error on second failure
+Synced:
 
 ReadEfuses:
                         //PrintMsg(Msg.Fuse1)           ; "Reading eFuses..."
@@ -324,7 +324,6 @@ ReadMAC:
                         call ESPReadIntoBuffer
                         ESPValidateCmd($0A, MAC3)       ; val = 0x00600194 (on test ESP)
                         //PrintBufferHex(MAC0, 12)
-
 CalculateMAC:
                         ; There are three alternative MAC scenarios. If not of them match, it is a fatal error.
                         ; Scenario 1: mac3 != 0
@@ -387,27 +386,27 @@ PrintMAC:
                         ld a, (OUI1)
                         call PrintAHexNoSpace
                         ld a, ':'
-                        rst 16
+                        call Rst16
                         ld a, (OUI2)
                         call PrintAHexNoSpace
                         ld a, ':'
-                        rst 16
+                        call Rst16
                         ld a, (OUI3)
                         call PrintAHexNoSpace
                         ld a, ':'
-                        rst 16
+                        call Rst16
                         ld a, (OUI4)
                         call PrintAHexNoSpace
                         ld a, ':'
-                        rst 16
+                        call Rst16
                         ld a, (OUI5)
                         call PrintAHexNoSpace
                         ld a, ':'
-                        rst 16
+                        call Rst16
                         ld a, (OUI6)
                         call PrintAHexNoSpace
-                        ld a, 13
-                        rst 16
+                        ld a, CR
+                        call Rst16
 UploadStub:
                         PrintMsg(Msg.Stub1)
                         ; These are the value for uploading the stub:
@@ -555,17 +554,10 @@ OkStub:                 PrintMsg(Msg.Stub3)
 
                         ld hl, $C000                    ; Load 16K of compressed firmware data
                         ld bc, $4000                    ; into the buffer at $C000
-                        ld (FlashStack), sp
-                        ld sp, $4000
                         call esxDOS.fRead
-FlashStack equ $+1:     ld sp, SMC
                         ErrorIfCarry(Err.ReadFW)
                         //call WaitKey
                         //ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
-
-
-
-
 
                         //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses

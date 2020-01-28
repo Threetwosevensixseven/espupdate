@@ -73,11 +73,8 @@ NextRegRead             macro(Register)
 mend
 
 WaitFrames              macro(Frames)
-                        ei
-                        for n = 1 to Frames
-                          halt
-                        next
-                        di
+                        ld bc, Frames
+                        call WaitFramesProc
 mend
 
 FillLDIR                macro(SourceAddr, Size, Value)
@@ -176,5 +173,39 @@ SetUARTBaud             macro(BaudTable, BaudMsg)
                         ld hl, BaudTable
                         ld de, BaudMsg
                         call SetUARTBaudProc
+mend
+
+SafePrintStart          macro()                         ; Included at the start of every routine which calls rst 16
+                        di                              ; Interrupts off while paging. Subsequent code will enable them.
+                        ld (SavedStackPrint), sp        ; Save current stack to be restored in SafePrintEnd()
+                        ld sp, (Return.Stack1)          ; Set stack back to what BASIC had at entry, so safe for rst 16
+                        nextreg $54, 4                  ; Restore what BASIC is expecting to find at $8000 (16K bank 2)
+                        nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
+                        nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
+                        nextreg $57, 1                  ; Restore what BASIC is expecting to find at $E000 (16K bank 0)
+mend
+
+SafePrintEnd            macro()                         ; Included at the end of every routine which calls rst 16
+                        di                              ; Interrupts off while paging. Subsequent code doesn't care.
+                        ld (SavedA), a                  ; Preserve A so it's completely free of side-effects
+                        ld a, (DeallocateBanks.Upper1)  ; Read bank to restore at $8000
+                        cp $FF                          ; If $FF we didn't allocate it yet,
+                        jr z, NotUpper1                 ; so don't restore,
+                        nextreg $54, a                  ; otherwise restore original bank at $8000.
+NotUpper1:              ld a, (DeallocateBanks.Upper2)  ; Read bank to restore at $A000
+                        cp $FF                          ; If $FF we didn't allocate it yet,
+                        jr z, NotUpper2                 ; so don't restore,
+                        nextreg $55, a                  ; otherwise restore original bank at $A000.
+NotUpper2:              ld a, (DeallocateBanks.Upper3)  ; Read bank to restore at $C000
+                        cp $FF                          ; If $FF we didn't allocate it yet,
+                        jr z, NotUpper3                 ; so don't restore,
+                        nextreg $56, a                  ; otherwise restore original bank at $C000.
+NotUpper3:              ld a, (DeallocateBanks.Upper3)  ; Read bank to restore at $E000
+                        cp $FF                          ; If $FF we didn't allocate it yet,
+                        jr z, NotUpper4                 ; so don't restore,
+                        nextreg $57, a                  ; otherwise restore original bank at $E000.
+NotUpper4:
+SavedA equ $+1:         ld a, SMC                       ; Restore A so it's completely free of side-effects
+                        ld sp, (SavedStackPrint)        ; Restore stack to what it was before SafePrintStart()
 mend
 

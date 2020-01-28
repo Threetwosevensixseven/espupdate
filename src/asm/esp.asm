@@ -154,7 +154,7 @@ WaitNotBusy:            in a, (c)                       ; Read the UART status
                         ret
 pend*/
 
-ESPRead                 proc
+/*ESPRead                 proc
                         ld a, (FRAMES)
                         add a, 5
                         ld (TimeoutFrame), a
@@ -176,9 +176,9 @@ HasData:                inc b                           ; Otherwise Read the byt
                         pop bc
                         dec b
                         jr WaitNotBusy                  ; then check if there are more data bytes ready to read
-pend
+pend*/
 
-ESPReadPrint            proc
+/*ESPReadPrint            proc
                         ld a, (FRAMES)
                         add a, 5
                         ld (TimeoutFrame), a
@@ -200,7 +200,7 @@ HasData:                inc b                           ; Otherwise Read the byt
                         pop bc
                         dec b
                         jr WaitNotBusy                  ; then check if there are more data bytes ready to read
-pend
+pend*/
 
 ESPClearBuffer:         proc
                         FillLDIR(Buffer, Buffer.Len, 0)
@@ -208,6 +208,10 @@ ESPClearBuffer:         proc
 pend
 
 ESPReadIntoBuffer       proc
+                        di
+                        ld (SavedStack), sp             ; Save stack
+                        ld sp, $8000                    ; Put stack in upper 16K so FRAMES gets update
+                        ei
                         call ESPClearBuffer
                         ld a, (FRAMES)
                         add a, 5
@@ -215,7 +219,6 @@ ESPReadIntoBuffer       proc
                         ld bc, UART_GetStatus
                         ld hl, Buffer
                         ld de, Buffer.Len
-                        ei
 WaitNotBusy:            in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
                         jp c, HasData                   ; Read Data if available
@@ -224,7 +227,7 @@ TimeoutFrame equ $+1:   cp SMC
                         jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
                         di
                         scf                             ; Set carry to signal error if N frames with no data,
-                        ret                             ; and return
+                        jr Return                       ; and return
 HasData:                inc b                           ; Otherwise Read the byte,
                         in a, (c)                       ; from the UART Rx port,
                         dec b
@@ -235,11 +238,12 @@ HasData:                inc b                           ; Otherwise Read the byt
                         or e
                         jr nz, WaitNotBusy              ; If so, check if there are more data bytes ready to read,
                         or a                            ; otherwise clear carry to signal success,
-                        di
+Return:                 di
+SavedStack equ $+1:     ld sp, SMC
                         ret                             ; and return
 pend
 
-ESPValidateCmdProc       proc                            ; a = Op, hl = ValWordAddr
+ESPValidateCmdProc      proc                            ; a = Op, hl = ValWordAddr
                         ld (Opcode), a
                         ld (ValWordAddr4), hl
                         inc hl
@@ -320,7 +324,7 @@ FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason 
                         push af
                         call PrintAHexNoSpace           ; Print A in hex
                         ld a, CR                        ; Print CR
-                        rst 16
+                        call Rst16
                         pop af
 ErrorCd00:              scf                             ; Set carry for error,
                         ret                             ; and return.

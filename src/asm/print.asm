@@ -107,6 +107,7 @@ Err                     proc
 pend
 
 PrintRst16              proc
+                        SafePrintStart()
                         if DisableScroll
                           ld a, 24                      ; Set upper screen to not scroll
                           ld (SCR_CT), a                ; for another 24 rows of printing
@@ -115,15 +116,15 @@ PrintRst16              proc
 Loop:                   ld a, (hl)
                         inc hl
                         or a
-                        jr z, Return
+                        jp z, Return
                         rst 16
                         jr Loop
-Return:                 di
+Return:                 SafePrintEnd()
                         ret
 pend
 
 PrintRst16Error         proc
-                        ei
+                        SafePrintStart()
 Loop:                   ld a, (hl)
                         ld b, a
                         and %1 0000000
@@ -132,8 +133,7 @@ Loop:                   ld a, (hl)
                         inc hl
                         rst 16
                         jr Loop
-Return:                 di
-                        ret
+Return:                 jp PrintRst16.Return
 LastChar                and %0 1111111
                         rst 16
                         ld a, CR                        ; The error message doesn't include a trailing CR in the
@@ -141,7 +141,8 @@ LastChar                and %0 1111111
                         jr Return                       ; in the upper screen.
 pend
 
-PrintAHex               proc
+/*PrintAHex               proc
+                        SafePrintStart()
                         ld b, a
                         if DisableScroll
                           ld a, 24                      ; Set upper screen to not scroll
@@ -158,7 +159,7 @@ PrintAHex               proc
                         rst 16
                         ld a, 32
                         rst 16
-                        ret
+                        jp PrintRst16.Return
 Print:                  cp 10
                         ld c, '0'
                         jr c, Add
@@ -166,9 +167,10 @@ Print:                  cp 10
 Add:                    add a, c
                         rst 16
                         ret
-pend
+pend*/
 
 PrintAHexNoSpace        proc
+                        SafePrintStart()
                         ld b, a
                         if DisableScroll
                           ld a, 24                      ; Set upper screen to not scroll
@@ -181,7 +183,7 @@ PrintAHexNoSpace        proc
                         ld a, b
                         and $0F
                         call Print
-                        ret
+                        jp PrintRst16.Return
 Print:                  cp 10
                         ld c, '0'
                         jr c, Add
@@ -192,6 +194,7 @@ Add:                    add a, c
 pend
 
 PrintChar               proc
+                        SafePrintStart()
                         ld b, a
                         if DisableScroll
                           ld a, 24                      ; Set upper screen to not scroll
@@ -206,10 +209,16 @@ PrintChar               proc
                         ret
 NotPrintable:           ld a, '.'
                         rst 16
-                        ret
+                        jp PrintRst16.Return
 pend
 
-PrintBufferHexProc      proc                            ; hl = Addr, de = Length
+Rst16                   proc
+                        SafePrintStart()
+                        rst 16
+                        jp PrintRst16.Return
+pend
+
+/*PrintBufferHexProc      proc                            ; hl = Addr, de = Length
                         ld a, (hl)
                         call PrintAHex
                         inc hl
@@ -218,5 +227,5 @@ PrintBufferHexProc      proc                            ; hl = Addr, de = Length
                         or e
                         jr nz, PrintBufferHexProc
                         ret
-pend
+pend*/
 

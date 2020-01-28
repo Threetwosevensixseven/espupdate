@@ -2,6 +2,7 @@
 
 ; Application
 SavedArgs:              dw 0
+SavedStackPrint:        dw $0000
 
 ; UART
 Prescaler:              ds 3
