@@ -188,23 +188,23 @@ mend
 SafePrintEnd            macro()                         ; Included at the end of every routine which calls rst 16
                         di                              ; Interrupts off while paging. Subsequent code doesn't care.
                         ld (SavedA), a                  ; Preserve A so it's completely free of side-effects
-                        ld a, (DeallocateBanks.Upper1)  ; Read bank to restore at $8000
+                        ld a, (DeallocateBanks.Bank1)   ; Read bank to restore at $8000
                         cp $FF                          ; If $FF we didn't allocate it yet,
-                        jr z, NotUpper1                 ; so don't restore,
+                        jr z, NoBank1                   ; so don't restore,
                         nextreg $54, a                  ; otherwise restore original bank at $8000.
-NotUpper1:              ld a, (DeallocateBanks.Upper2)  ; Read bank to restore at $A000
+NoBank1:                ld a, (DeallocateBanks.Bank2)   ; Read bank to restore at $A000
                         cp $FF                          ; If $FF we didn't allocate it yet,
-                        jr z, NotUpper2                 ; so don't restore,
+                        jr z, NoBank2                   ; so don't restore,
                         nextreg $55, a                  ; otherwise restore original bank at $A000.
-NotUpper2:              ld a, (DeallocateBanks.Upper3)  ; Read bank to restore at $C000
+NoBank2:                ld a, (DeallocateBanks.Bank3)   ; Read bank to restore at $C000
                         cp $FF                          ; If $FF we didn't allocate it yet,
-                        jr z, NotUpper3                 ; so don't restore,
+                        jr z, NoBank3                   ; so don't restore,
                         nextreg $56, a                  ; otherwise restore original bank at $C000.
-NotUpper3:              ld a, (DeallocateBanks.Upper3)  ; Read bank to restore at $E000
+NoBank3:                ld a, (DeallocateBanks.Bank4)   ; Read bank to restore at $E000
                         cp $FF                          ; If $FF we didn't allocate it yet,
-                        jr z, NotUpper4                 ; so don't restore,
+                        jr z, NoBank4                   ; so don't restore,
                         nextreg $57, a                  ; otherwise restore original bank at $E000.
-NotUpper4:
+NoBank4:
 SavedA equ $+1:         ld a, SMC                       ; Restore A so it's completely free of side-effects
                         ld sp, (SavedStackPrint)        ; Restore stack to what it was before SafePrintStart()
 mend

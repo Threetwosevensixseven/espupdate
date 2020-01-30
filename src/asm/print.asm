@@ -1,8 +1,8 @@
 ; msg.asm
 
 Msg                     proc
-  Startup:              db "ESP UPDATE TOOL v1."
-                        BuildNo()
+  Startup:              db "ESP UPDATE TOOL v1.", BuildNoValue
+                        db " (", BuildTimeSecsValue, ")"
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   ReadFW:               db "Reading firmware...", CR, 0
@@ -218,14 +218,14 @@ Rst16                   proc
                         jp PrintRst16.Return
 pend
 
-/*PrintBufferHexProc      proc                            ; hl = Addr, de = Length
+PrintBufferHexProc      proc                            ; hl = Addr, de = Length
                         ld a, (hl)
-                        call PrintAHex
+                        call PrintAHexNoSpace
                         inc hl
                         dec de
                         ld a, d
                         or e
                         jr nz, PrintBufferHexProc
                         ret
-pend*/
+pend
 

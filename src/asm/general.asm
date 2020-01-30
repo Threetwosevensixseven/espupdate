@@ -36,13 +36,13 @@ Saved equ $+1:          ld a, SMC                       ; This was saved here wh
 pend
 
 DeallocateBanks         proc
-Upper1 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
+Bank1 equ $+1:          ld a, $FF                       ; Default value of $FF means not yet allocated
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
-Upper2 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
+Bank2 equ $+1:          ld a, $FF                       ; Default value of $FF means not yet allocated
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
-Upper3 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
+Bank3 equ $+1:          ld a, $FF                       ; Default value of $FF means not yet allocated
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
-Upper4 equ $+1:         ld a, $FF                       ; Default value of $FF means not yet allocated
+Bank4 equ $+1:          ld a, $FF                       ; Default value of $FF means not yet allocated
                         call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
                                                         ; In more robust library code we might want to set these
                                                         ; locations back to $FF before exiting, but here we are
@@ -157,5 +157,14 @@ Loop:                   halt
                         di
 SavedStack equ $+1:     ld sp, SMC
                         ret
+pend
+
+TestData                proc
+                        ld hl, $C000                    ; Start loading at $8000
+                        ld bc, $4000                    ; Load up to 16KB of data
+                        call esxDOS.fRead
+                        ErrorIfCarry(Err.BadDot)
+                        PrintBufferHex($C000, 256)
+                        Freeze(1,3)
 pend
 

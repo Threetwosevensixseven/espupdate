@@ -65,22 +65,22 @@ IsANext:
                         ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate three 8KB
                         ; banks, which must be freed before exiting the dot command.
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (DeallocateBanks.Upper1), a  ; Save bank number
+                        ld (DeallocateBanks.Bank1), a   ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (DeallocateBanks.Upper2), a  ; Save bank number
+                        ld (DeallocateBanks.Bank2), a   ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (DeallocateBanks.Upper3), a  ; Save bank number
+                        ld (DeallocateBanks.Bank3), a   ; Save bank number
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
-                        ld (DeallocateBanks.Upper4), a  ; Save bank number
+                        ld (DeallocateBanks.Bank4), a   ; Save bank number
 
                         ; Now we can page in the four 8K banks at $8000, $A000, $C000 and $E000, and try to load the
                         ; remainder of the dot command code. This paging will need to be undone during cmd exit.
                         nextreg $57, a                  ; Allocated bank for $E000 was already in A, page it in.
-                        ld a, (DeallocateBanks.Upper1)
+                        ld a, (DeallocateBanks.Bank1)
                         nextreg $54, a                  ; Page in allocated bank for $8000
-                        ld a, (DeallocateBanks.Upper2)
+                        ld a, (DeallocateBanks.Bank2)
                         nextreg $55, a                  ; Page in allocated bank for $A000
-                        ld a, (DeallocateBanks.Upper3)
+                        ld a, (DeallocateBanks.Bank3)
                         nextreg $56, a                  ; Page in allocated bank for $C000
 
                         ld hl, $8000                    ; Start loading at $8000
@@ -161,6 +161,9 @@ ReadFW:
                         ld (FilePointer+2), hl
 NoSeekCarry:            ld bc, (FilePointer+2)
                         ld de, (FilePointer)            ; BCDE = absolute file position of compressed firmware
+                        ld hl, 4
+                        add hl, de
+                        ex de, hl
                         ld l, 0                         ;  L    = mode:  0 - from start of file
                         call esxDOS.fSeek               ;
                         ErrorIfCarry(Err.ReadFW)        ; BCDE = Current file pointer
@@ -550,14 +553,13 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
                         ; self.ESP_FLASH_DEFL_DATA, struct.pack('<IIII', len(data), seq, 0, 0) + data,
                         ;   self.checksum(data), timeout=timeout) - line 632
-                        //ESPSendCmdWithData(ESP_FLASH_DEFL_DATA, SLIP.Stub1, SLIP.Stub1Len, Err.StubUpload)
 
                         ld hl, $C000                    ; Load 16K of compressed firmware data
                         ld bc, $4000                    ; into the buffer at $C000
                         call esxDOS.fRead
                         ErrorIfCarry(Err.ReadFW)
                         //call WaitKey
-                        //ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
+                        ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
 
                         //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses
@@ -686,6 +688,7 @@ endif
 output_bin "..\\..\\dot\\ESPUPDATE", Start, Length              ; Binary for project, and for CSpect image.
 
 if enabled UploadNext
+  zeusinvoke "..\\..\\build\\builddot.bat"                      ; Just build
   output_bin "R:\\dot\\ESPUPDATE", Start, Length                ; NextZXOS  dot command (LFN)
   //output_bin "R:\\dot\\extra\\ESPUPDATE", Start, Length       ; 48K BASIC dot command (LFN)
   //output_bin "R:\\bin\\ESPUPD", Start, Length                 ; esxDOS    dot command (8+3)
