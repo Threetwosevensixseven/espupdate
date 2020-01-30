@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using AppendFW.Data;
 using ZLibNet;
 
 namespace AppendFW
@@ -18,6 +19,7 @@ namespace AppendFW
         static string Firmware;
         static short FlashParams = 0;
         static string Version = "0.0.0.0";
+        static short BlockSize;
 
         static int Main(string[] args)
         {
@@ -36,16 +38,23 @@ namespace AppendFW
                     return Help();
 
                 var header = new NxEspHeader();
-                string fp = (args.FirstOrDefault(a => a.StartsWith("-f=0x")) ?? "").Trim().Substring(5);
+                string fp = (args.FirstOrDefault(a => a.StartsWith("-f=0x")) ?? "     ").Substring(5);
                 short.TryParse(fp, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out FlashParams);
                 header.FlashParams = FlashParams;
                 //Console.WriteLine("FlashParams: 0x" + FlashParams.ToString("X4"));
 
-                string ver = (args.FirstOrDefault(a => a.StartsWith("-v=")) ?? "").Trim().Substring(3).Trim();
+                string ver = (args.FirstOrDefault(a => a.StartsWith("-v=")) ?? "   ").Substring(3).Trim();
                 if (!string.IsNullOrWhiteSpace(ver))
                     Version = ver;
                 header.Version = Version;
                 //Console.WriteLine("Version: " + Version);
+
+                string arg = (args.FirstOrDefault(a => a.StartsWith("-b=")) ?? "   ").Substring(3).Trim();
+                short.TryParse(arg, out BlockSize);
+                if (BlockSize <= 0)
+                    BlockSize = 16384;
+                header.DataBlockSize = BlockSize;
+                Console.WriteLine("Block size: 0x" + BlockSize.ToString("X2"));
 
                 DotCommand = (args[1] ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(DotCommand))

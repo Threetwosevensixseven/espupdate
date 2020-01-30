@@ -47,7 +47,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="NxEspHeader.cs" />
+    <Compile Include="Data\NxEspHeader.cs" />
+    <Compile Include="Data\NxEspHeaderBlock.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

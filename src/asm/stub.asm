@@ -14,6 +14,11 @@ Buffer                  proc
   Len                   equ $-Buffer
 pend
 
+Header                  proc
+  Buffer:               ds 1024
+  Len                   equ $-Header
+pend
+
 ESP8266StubText:
 import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_text.bin"
 ESP8266StubTextLen      equ $-1

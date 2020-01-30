@@ -25,9 +25,14 @@ OUI4:                   ds 1
 OUI5:                   ds 1
 OUI6:                   ds 1
 FlashFreq:              ds 1
-FlashParams:            ds 2;dw 0x2102
+FlashParams:            ds 2
 FWVersion:              ds 11                   ; 10 chars with terminating null
-FWMD5:                  ds 32
+FWMD5:                  ds 32                   ; 32 chars with no termination
+DataBlockSize:          ds 2
+FWCompLen:              ds 4
+HeaderBlockSize:        ds 1
+BlockCount:             ds 2
+BlockHeaderStart:       ds 2
 FilePointer:            ds 4
 
 Features                proc

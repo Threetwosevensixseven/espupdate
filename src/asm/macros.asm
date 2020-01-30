@@ -209,3 +209,9 @@ SavedA equ $+1:         ld a, SMC                       ; Restore A so it's comp
                         ld sp, (SavedStackPrint)        ; Restore stack to what it was before SafePrintStart()
 mend
 
+CpHL                    macro(Register)
+                        or a
+                        sbc hl, Register
+                        add hl, Register
+mend
+

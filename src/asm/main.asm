@@ -89,22 +89,18 @@ IsANext:
                         ErrorIfCarry(Err.BadDot)
 ReadFW:
                         PrintMsg(Msg.ReadFW)
-                        ld l, 1                         ; L = mode:  1 - forward from current position
-                        ld bc, 0
-                        ld d, b
-                        ld e, b                         ; BCDE = bytes to seek
-                        call esxDOS.fSeek               ;
-                        ErrorIfCarry(Err.ReadFW)        ; BCDE = Current file pointer
-                        ld (FilePointer), de            ; Save file pointer
-                        ld (FilePointer+2), bc
-                        ld hl, $C000                    ; Start loading at $C000
-                        ld bc, $0100                    ; Load 256 bytes of data
+                        ld hl, $C000                     ; Start loading at $C000
+                        ld bc, $0007                     ; Load 7 bytes of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.ReadFW)
+                        ld a, b
+                        or c
+                        cp 7                            ; Check we read 7 bytes
+                        jp nz, BadFormat
                         ld hl, $C000                    ; Check magic bytes NXESP
                         ld a, (hl)
                         cp 'N'
-                        jr nz, BadFormat
+                        jp nz, BadFormat
                         inc hl
                         ld a, (hl)
                         cp 'X'
@@ -120,12 +116,20 @@ ReadFW:
                         inc hl
                         ld a, (hl)
                         cp 'P'
-                        jr nz, BadFormat
+                        jr z, ReadMoreHeader
+BadFormat:              ErrorAlways(Err.BadFW)
+ReadMoreHeader:         inc hl
+                        ld c, (hl)                      ; Read remaining header size
                         inc hl
-                        inc hl
-                        inc hl
-                        inc hl
-                        inc hl
+                        ld b, (hl)
+                        ld hl, Header.Len
+                        CpHL(bc)                        ; Check it isn't bigger than Header buffer
+                        jr c, BadFormat
+                        ld hl, Header.Buffer            ; Read remaining header into Header buffer
+                        push hl
+                        call esxDOS.fRead
+                        ErrorIfCarry(Err.BadDot)
+                        pop hl
                         ld a, (hl)                      ; Read Version Length
                         cp 11                           ; Can't be more than 10 chars
                         jr nc, BadFormat
@@ -148,27 +152,31 @@ ReadFW:
                         inc hl
                         ld de, FWMD5
                         ld bc, 32
-                        ldir                            ; hl now points to start of compressed firmware
-                        ld de, $C000
-                        or a
-                        sbc hl, de                      ; hl = number of bytes past the original file pointer
-                        ld de, (FilePointer)
-                        add hl, de
-                        ld (FilePointer), hl
-                        jr nc, NoSeekCarry              ; If we crossed $FFFF, increase the upper 2 bytes by 1
-                        ld hl, (FilePointer+2)
+                        ldir                            ; Write MD5
+                        ld e, (hl)                      ; Read DataBlockSize
                         inc hl
-                        ld (FilePointer+2), hl
-NoSeekCarry:            ld bc, (FilePointer+2)
-                        ld de, (FilePointer)            ; BCDE = absolute file position of compressed firmware
-                        ld hl, 4
-                        add hl, de
-                        ex de, hl
-                        ld l, 0                         ;  L    = mode:  0 - from start of file
-                        call esxDOS.fSeek               ;
-                        ErrorIfCarry(Err.ReadFW)        ; BCDE = Current file pointer
-                        jr FWReadFinished
-BadFormat:              ErrorAlways(Err.BadFW)
+                        ld d, (hl)
+                        ld (DataBlockSize), de          ; Write DataBlockSize
+                        inc hl
+                        ld e, (hl)                      ; Read FWCompLen
+                        inc hl
+                        ld d, (hl)
+                        inc hl
+                        ld c, (hl)
+                        inc hl
+                        ld b, (hl)
+                        ld (FWCompLen), de
+                        ld (FWCompLen+2), bc            ; Write FWCompLen
+                        inc hl
+                        ld a, (hl)                      ; Read HeaderBlockSize
+                        ld (HeaderBlockSize), a         ; Write HeaderBlockSize
+                        inc hl
+                        ld e, (hl)                      ; Read BlockCount
+                        inc hl
+                        ld d, (hl)
+                        ld (BlockCount), de             ; Write BlockCount
+                        inc hl
+                        ld (BlockHeaderStart), hl       ; Write BlockHeaderStart
 FWReadFinished:         PrintMsg(Msg.FWVer)
                         PrintMsg(FWVersion)
                         PrintMsg(Msg.EOL)
