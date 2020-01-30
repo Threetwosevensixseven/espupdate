@@ -30,10 +30,12 @@ FWVersion:              ds 11                   ; 10 chars with terminating null
 FWMD5:                  ds 32                   ; 32 chars with no termination
 DataBlockSize:          ds 2
 FWCompLen:              ds 4
-HeaderBlockSize:        ds 1
+FWCompLenStr:           ds 11
+HeaderBlockSize:        ds 2                    ; MSB is always zero
 BlockCount:             ds 2
 BlockHeaderStart:       ds 2
 FilePointer:            ds 4
+Progress:               ds 16                   ; 15 chars with terminating null
 
 Features                proc
   Is8285:               ds 1

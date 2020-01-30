@@ -176,6 +176,13 @@ ReadMoreHeader:         inc hl
                         ld d, (hl)
                         ld (BlockCount), de             ; Write BlockCount
                         inc hl
+                        ld c, (hl)                      ; Read FWCompLenStr size
+                        ld b, 0
+                        inc hl
+                        ld de, FWCompLenStr
+                        ldir                            ; Write FWCompLenStr
+                        xor a                           ; with terminating null
+                        ld (de), a
                         ld (BlockHeaderStart), hl       ; Write BlockHeaderStart
 FWReadFinished:         PrintMsg(Msg.FWVer)
                         PrintMsg(FWVersion)
@@ -531,12 +538,42 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; flash_params = struct.pack(b'BB', flash_mode, flash_size + flash_freq) = 0x2102
                         ; flash_mode appears first, flash_size + flash_freq appears second
                         ; replace bytes 2 and 3 (zero-based) of image with these two bytes
-                        PrintMsg(Msg.Stub5)
+                        PrintMsg(Msg.FlashParams)               ; "Flash params set to 0x"
                         ld a, (FlashParams)
-                        call PrintAHexNoSpace
+                        call PrintAHexNoSpace                   ; Print param word in hex
                         ld a, (FlashParams+1)
                         call PrintAHexNoSpace
                         PrintMsg(Msg.EOL)
+                        PrintMsg(Msg.Upload1)                   ; "Uploading "
+                        ld hl, FWCompLenStr
+                        call PrintRst16                         ; Print compresed size in decimal
+                        PrintMsg(Msg.Upload2)                   ; " bytes..."
+                        ld ix, (BlockHeaderStart)               ; IX points to current block header
+                        PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
+FlashLoop:
+                        push ix
+                        pop hl
+                        inc hl
+                        inc hl                                  ; "00000000 (3%)  "
+                        ld de, Progress
+                        push de
+                        ld bc, 15
+                        ldir
+                        pop hl
+                        call PrintRst16                         ; Print address and percentage
+                        PrintMsg(Msg.UploadLeft)                ; Print left 15 chars
+
+                        call Wait80Frames                       ; Pause to simulate uploading
+
+                        ld de, (HeaderBlockSize)
+                        add ix, de                              ; Move block header pointer to next block
+                        ld hl, (BlockCount)
+                        dec hl                                  ; Decrease and save block count
+                        ld (BlockCount), hl
+                        ld a, h
+                        or l
+                        jp nz, FlashLoop                        ; If more blocks remain, upload again
+
 
                         ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
                         ; blocks = esp.flash_defl_begin(1048576, 457535, 0)
@@ -573,83 +610,8 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         //zeusprinthex "eFuses:     ", eFuses
                         //zeusprinthex "MAC:         ", MAC
 
-                        if (enabled TestWorkflow)
-                          WaitFrames(100)
-                          PrintMsg(Msg.Stub2)
-                          WaitFrames(20)
-                          PrintMsg(Msg.Stub3)
-                          WaitFrames(10)
-                          PrintMsg(Msg.Stub4)
-                          WaitFrames(5)
-                          PrintMsg(Msg.Stub5)
-                          PrintMsg(Msg.Stub6)
 
-                          PrintMsg(Msg.Write1)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write2)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write3)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write4)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write5)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write6)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write7)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write8)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write9)
-                          call Wait80Frames
 
-                          PrintMsg(Msg.Write10)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write11)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write12)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write13)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write14)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write15)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write16)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write17)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write18)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write19)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write20)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write21)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write22)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write23)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write24)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write25)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write26)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write27)
-                          call Wait80Frames
-                          PrintMsg(Msg.Write28)
-                          call Wait5Frames
-
-                          PrintMsg(Msg.Finish1)
-                          PrintMsg(Msg.Finish2)
-                          PrintMsg(Msg.Finish3)
-                          nextreg 2, 128                  ; Set RST Low
-                          call Wait5Frames
-                          nextreg 2, 0                    ; Set RST high
-                          call Wait5Frames
-                        endif
 
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached

@@ -58,6 +58,9 @@ namespace AppendFW.Data
             bs.Add(BitConverter.GetBytes(fwCompressed.Length));
             bs.Add(HeaderBlockSize);
             bs.Add(BitConverter.GetBytes(Convert.ToInt16(Blocks.Count)));
+            string csize = fwCompressed.Length.ToString();
+            bs.Add(Convert.ToByte(csize.Length));
+            bs.AddRange(ASCIIEncoding.ASCII.GetBytes(csize));
             bs.AddRange(blockBytes);
             countedLen = Convert.ToInt16(bs.Count - fixedLen);
             var countedLenB = BitConverter.GetBytes(countedLen);
