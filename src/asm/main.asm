@@ -28,6 +28,8 @@ Begin:                  di                              ; We run with interrupts
                         cp %1000 0000                   ; Test that the bits of A were mirrored as expected
                         ld hl, Err.NotNext              ; If not a Spectrum Next,
                         jp nz, Return.WithCustomError   ; exit with an error.
+                        ld a, 1
+                        ld (IsNext), a
 
                         NextRegRead(Reg.MachineID)      ; If we passed that test we are safe to read machine ID.
                         cp 10                           ; 10 = ZX Spectrum Next
@@ -549,8 +551,10 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         call PrintRst16                         ; Print compresed size in decimal
                         PrintMsg(Msg.Upload2)                   ; " bytes..."
                         ld ix, (BlockHeaderStart)               ; IX points to current block header
-                        PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
+                        ld a, 1
+                        ld (CRbeforeErr), a
 FlashLoop:
+                        PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
                         push ix
                         pop hl
                         inc hl
@@ -573,7 +577,13 @@ FlashLoop:
                         ld a, h
                         or l
                         jp nz, FlashLoop                        ; If more blocks remain, upload again
-
+                        xor a
+                        ld (CRbeforeErr), a
+                        PrintMsg(Msg.Finish1)                   ; "Wrote "
+                        ld hl, FWCompLenStr
+                        call PrintRst16                         ; Print compresed size in decimal
+                        PrintMsg(Msg.Finish2)                   ; " bytes to flash "
+                        PrintMsg(Msg.Finish3)
 
                         ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
                         ; blocks = esp.flash_defl_begin(1048576, 457535, 0)

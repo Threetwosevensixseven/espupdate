@@ -30,11 +30,12 @@ Msg                     proc
   Upload1:              db "Uploading ", 0
   Upload2:              db " bytes...", CR, 0
   Upload3:              db "Writing at 0x", 0
-  UploadLeft:           db Left5, Left5, Left5, 0
+  UploadLeft:           ds 28, 8:db 0
 
-  Finish1:              db "Wrote 457535 bytes          ", CR, 0
-  Finish2:              db "Hash of data verified", CR, 0
-  Finish3:              db "Resetting ESP...", CR, 0
+  Finish1:              db "Written ", 0
+  Finish2:              db " bytes to flash  ", CR, 0
+  Finish3:              db "Hash of data verified", CR, 0
+  Finish4:              db "Resetting ESP...", CR, 0
 
   //RcvSync:            db "Receiving sync", CR, 0
   //ESPProg2:           db "Enabling GPIO0 output", CR, 0

@@ -13,11 +13,25 @@ pend
 
 ErrorProc               proc
                         if enabled ErrDebug
-                          call PrintRst16Error
+                          ld a, (CRbeforeErr)
+                          or a
+                          jr z, NoCR
+                          push hl
+                          ld a, CR
+                          call Rst16
+                          pop hl
+NoCR:                     call PrintRst16Error
 Stop:                     Border(2)
                           jr Stop
                         else
+                          ld a, (CRbeforeErr)
+                          or a
+                          jr z, NoCR
                           push hl                       ; If we want to print the error at the top of the screen,
+                          ld a, CR
+                          call Rst16
+                          pop hl
+NoCR:                     push hl
                           call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
                           pop hl                        ; then uncomment this code.
                           jp Return.WithCustomError     ; Straight to the error handing exit routine

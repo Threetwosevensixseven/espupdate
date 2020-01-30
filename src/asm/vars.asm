@@ -3,6 +3,7 @@
 ; Application
 SavedArgs:              dw 0
 SavedStackPrint:        dw $0000
+IsNext:                 ds 0
 
 ; UART
 Prescaler:              ds 3
@@ -36,6 +37,7 @@ BlockCount:             ds 2
 BlockHeaderStart:       ds 2
 FilePointer:            ds 4
 Progress:               ds 16                   ; 15 chars with terminating null
+CRbeforeErr:            ds 0
 
 Features                proc
   Is8285:               ds 1
