@@ -16,6 +16,7 @@ Start:
                         db 0
 Begin:                  di                              ; We run with interrupts off apart from printing and halts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
+                        ld (Return.IY1), iy             ; Put IY safe, just in case
                         ld sp, $4000                    ; Put stack safe inside dot command
                         ld (SavedArgs), hl              ; Save args for later
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls

@@ -81,6 +81,7 @@ ToBasic:
                         xor a
 Stack                   ld sp, SMC                      ; Unwind stack to original point
 Stack1                  equ Stack+1
+IY1 equ $+1:            ld iy, SMC                      ; Restore IY
                         ei
                         ret                             ; Return to BASIC
 WithCustomError:

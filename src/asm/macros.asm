@@ -23,6 +23,14 @@ Loop:                   Border(Colour1)
                         jr Loop
 mend
 
+MFBreak                 macro()                         ; Intended for NextZXOS NMI debugging
+                        push af                         ; MF must be enabled first, by pressing M1 button
+                        ld a, r                         ; then choosing Return from the NMI menu.
+                        di
+                        in a, ($3f)
+                        rst 8                           ; It's possible the stack will end up unbalanced
+mend                                                    ; if the MF break doesn't get triggered!
+
 CSBreak                 macro()                         ; Intended for CSpect debugging
                         push bc                         ; enabled when the -brk switch is supplied
                         noflow                          ; Mitigate the worst effect of running on real hardware
