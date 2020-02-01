@@ -66,7 +66,9 @@ SLIP                    proc
                         dl 0x00000000                   ; num_blocks (0, hardcoded)
                         dl 0x00000000                   ; FLASH_WRITE_SIZE (16KB, will be written from FW header)
                         dl 0x00000000                   ; offset (0, hardcoded)
-  FinalizeBlockLen      equ $-FinalizeBlock        ; FinalizeBlock should be 16 bytes long
+  FinalizeBlockLen      equ $-FinalizeBlock             ; FinalizeBlock should be 16 bytes long
+  ExitBlock:            dl 0x00000001                   ; int(not reboot) (1, hardcoded)
+  ExitBlockLen          equ $-ExitBlock                 ; ExitBlock should be 4 bytes long
   LastErr:              ds 0
 pend
 

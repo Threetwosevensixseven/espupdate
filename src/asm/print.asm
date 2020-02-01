@@ -60,6 +60,7 @@ Err                     proc
   FlashUp:              db "Error writing flas",    'h'|128
   BadMd5:               db "MD5 hash failur",       'e'|128
   Finalize:             db "Error finalizing writ", 'e'|128
+  ExitWrite:            db "Error exiting writ",    'e'|128
 pend
 
 PrintRst16              proc

@@ -656,15 +656,23 @@ HashVerifyLoop:         ld a, (de)
                         djnz HashVerifyLoop                     ; Repeat for all 16 bytes of MDS hash
                         PrintMsg(Msg.GoodMd5)                   ; "Hash of data verified"
 
-                        ; Send an ESP_FLASH_BEGIN command to begin the final sequence
+                        ; Send an ESP_FLASH_BEGIN command to begin the final sequence. esptool.py says:
+                        ; # skip sending flash_finish to ROM loader here,
+                        ; # as it causes the loader to exit and run user code
                         ; esp.flash_begin(0, 0)
                         ; struct.pack('<IIII', erase_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
                         ; erase_size = 0
                         ; num_blocks = 0
-                        ; FLASH_WRITE_SIZE = 0x4000 (from extended firmware header)
+                        ; FLASH_WRITE_SIZE = 0x4000 (already set when we read the extended firmware header)
                         ; offset = 0
                         PrintMsg(Msg.Finalize)                  ; "Finalising...", esptool.py prints "Leaving..." here
                         ESPSendCmdWithData(ESP_FLASH_BEGIN, SLIP.FinalizeBlock, SLIP.FinalizeBlockLen, Err.Finalize)
+
+                        ; esp.flash_defl_finish(False)
+                        ; pkt = struct.pack('<I', int(not reboot)) = 0x00000001
+                        ; self.check_command("leave compressed flash mode", self.ESP_FLASH_DEFL_END, pkt)
+                        call WaitKey
+                        ESPSendCmdWithData(ESP_FLASH_DEFL_END, SLIP.ExitBlock, SLIP.ExitBlockLen, Err.ExitWrite)
 
 
 
