@@ -28,7 +28,7 @@ OUI6:                   ds 1
 FlashFreq:              ds 1
 FlashParams:            ds 2
 FWVersion:              ds 11                   ; 10 chars with terminating null
-FWMD5:                  ds 32                   ; 32 chars with no termination
+FWMD5:                  ds 16                   ; 16 bytes (binary not hex string)
 DataBlockSize:          ds 2
 FWCompLen:              ds 4
 FWCompLenStr:           ds 11
@@ -37,7 +37,8 @@ BlockCount:             ds 2
 BlockHeaderStart:       ds 2
 FilePointer:            ds 4
 Progress:               ds 16                   ; 15 chars with terminating null
-CRbeforeErr:            ds 0
+CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
+TimeoutBackup:          ds 1
 
 Features                proc
   Is8285:               ds 1

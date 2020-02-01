@@ -11,7 +11,7 @@ namespace AppendFW.Data
     public class NxEspHeader
     {
         const string MAGIC = "NXESP";
-        public string Md5 { get; set; }
+        public byte[] Md5 { get; set; }
         public string Version { get; set; }
         public short FlashParams { get; set; }
         public short DataBlockSize { get; set; }
@@ -53,7 +53,8 @@ namespace AppendFW.Data
             bs.AddRange(ASCIIEncoding.ASCII.GetBytes(Version));
             bs.Add(BitConverter.GetBytes(FlashParams));
             bs.Add(Convert.ToByte(Md5.Length));
-            bs.AddRange(ASCIIEncoding.ASCII.GetBytes(Md5));
+            bs.AddRange(Md5);
+            //bs.AddRange(ASCIIEncoding.ASCII.GetBytes(Md5)); // // 16 bytes of binary, not hex string
             bs.Add(BitConverter.GetBytes(DataBlockSize));
             bs.Add(BitConverter.GetBytes(fwCompressed.Length));
             bs.Add(HeaderBlockSize);
@@ -69,7 +70,7 @@ namespace AppendFW.Data
 
             // Add compressed data
             Console.WriteLine("Appending header: " + MAGIC + " " + Version + " " + FlashParams.ToString("X4")
-                + " " + Md5 + " (" + bs.Count + " bytes)");
+                + " " + BitConverter.ToString(Md5).Replace("-", "").ToLowerInvariant() + " (" + bs.Count + " bytes)");
             Console.WriteLine("Appending firmware (" + fwCompressed.Length + " bytes)");
             bs.AddRange(fwCompressed);
             return bs.ToArray();

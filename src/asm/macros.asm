@@ -249,3 +249,22 @@ CpHL                    macro(Register)
                         add hl, Register
 mend
 
+SetReadTimeout          macro(FramesToWait)
+                        ld a, FramesToWait
+                        call SaveReadTimeoutProc
+mend
+
+RestoreReadTimeout      macro()
+                        call RestoreReadTimeoutProc
+mend
+
+DisableReadValidate     macro()
+                        ld hl, ESPNoValidateCmdProc
+                        ld (ESPSendCmdWithDataProc.ValidateProcSMC), hl
+mend
+
+EnableReadValidate     macro()
+                        ld hl, ESPValidateCmdProc
+                        ld (ESPSendCmdWithDataProc.ValidateProcSMC), hl
+mend
+

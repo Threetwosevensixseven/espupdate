@@ -150,11 +150,11 @@ ReadMoreHeader:         inc hl
                         ld (FlashParams+1), a
                         inc hl
                         ld a, (hl)                      ; Read MD5 length
-                        cp 32                           ; Must be 32
+                        cp 16                           ; Must be 16 (binary, not hex string)
                         jr nz, BadFormat
                         inc hl
                         ld de, FWMD5
-                        ld bc, 32
+                        ld bc, 16
                         ldir                            ; Write MD5
                         ld e, (hl)                      ; Read DataBlockSize
                         inc hl
@@ -558,8 +558,6 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ld hl, 0
                         ld (BlockSeqNo), hl
 
-                        call WaitKey
-
                         ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
                         ; blocks = esp.flash_defl_begin(1048576, 457535, 0)
                         ; blocks = esp.flash_defl_begin(0x00100000, 0x0006FB3F, 0)
@@ -571,7 +569,6 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; offset = 0
                         ; SLIP.FlashBlock was already prepopulated when we read the firmware header
                         ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
-
 FlashLoop:
                         PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
                         ld hl, (BlockHeaderStart)
@@ -607,18 +604,9 @@ FlashLoop:
                         ErrorIfCarry(Err.ReadFW)
 BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block size (DataLen)
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
-                        //CSBreak()
-
-                        //ld a, e
-                        //cp 1
-                        //jr nz, NoBreak
-                        //CSBreak()
-NoBreak:
-                        //ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
 
-                        call Wait80Frames                       ; Pause to simulate uploading
-                        //CSBreak()
+                        call Wait30Frames                       ; Pause to simulate uploading
 
                         ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)
@@ -635,22 +623,37 @@ NoBreak:
                         jp nz, FlashLoop                        ; If more blocks remain, upload again
                         xor a
                         ld (CRbeforeErr), a
-                        PrintMsg(Msg.Finish1)                   ; "Wrote "
+                        PrintMsg(Msg.Written1)                  ; "Wrote "
                         ld hl, FWCompLenStr
-                        call PrintRst16                         ; Print compresed size in decimal
-                        PrintMsg(Msg.Finish2)                   ; " bytes to flash "
-                        PrintMsg(Msg.Finish3)
+                        call PrintRst16                         ; Print compressed size in decimal
+                        PrintMsg(Msg.Written2)                  ; " bytes to flash "
 
+                        ; Ask ESP uploader stub to calculate the MD5 hash of the 1MB of data we just uploaded,
+                        ; after the stub has decompressed it. It will return it in a SLIP response, after a
+                        ; delay. Because we know the size and location, we can increase the timeout and
+                        ; skip the validation, then verify the MD5 hash directly from the read buffer.
+                        ;
+                        ; res = esp.flash_md5sum(address, uncsize)
+                        ; res = esp.flash_md5sum(0, 0x00100000)
+                        ; self.ESP_SPI_FLASH_MD5, struct.pack('<IIII', addr, size, 0, 0)
+                        SetReadTimeout(200)
+                        DisableReadValidate()
+                        ESPSendCmdWithData(ESP_SPI_FLASH_MD5, SLIP.Md5Block, SLIP.Md5BlockLen, Err.BadMd5)
+                        RestoreReadTimeout()
+                        EnableReadValidate()
 
-
-
-
-
-                        //zeusprinthex "Buffer:     ", Buffer
-                        //zeusprinthex "eFuses:     ", eFuses
-                        //zeusprinthex "MAC:         ", MAC
-
-
+                        ; Compare the 32 returned bytes in the buffer against the precalculated MD5 hash
+                        ; we read from the firmware extended header.
+                        ld hl, Buffer+9                         ; Received hash start address, in buffer.
+                        ld de, FWMD5                            ; Precalculated hash start address, in vars.
+                        ld b, 16                                ; Size of hash, MD5 is always 16 bytes (not hex string)
+HashVerifyLoop:         ld a, (de)
+                        cp (hl)
+                        inc hl                                  ; 16bit inc doesn't affect flags
+                        inc de
+                        ErrorIfNotZero(Err.BadMd5)              ; If any byte differs, raise "MD5 hash failure" error.
+                        djnz HashVerifyLoop                     ; Repeat for all 16 bytes of MDS hash
+                        PrintMsg(Msg.GoodMd5)                   ; "Hash of data verified"
 
 
                         if (ErrDebug)

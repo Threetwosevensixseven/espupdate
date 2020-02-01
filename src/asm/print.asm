@@ -32,9 +32,9 @@ Msg                     proc
   Upload3:              db "Writing at 0x", 0
   UploadLeft:           ds 28, 8:db 0
 
-  Finish1:              db "Written ", 0
-  Finish2:              db " bytes to flash  ", CR, 0
-  Finish3:              db "Hash of data verified", CR, 0
+  Written1:             db "Written ", 0
+  Written2:             db " bytes to flash  ", CR, 0
+  GoodMd5:              db "Hash of data verified", CR, 0
   Finish4:              db "Resetting ESP...", CR, 0
 
   //RcvSync:            db "Receiving sync", CR, 0
@@ -78,6 +78,7 @@ Err                     proc
   BadFW:                db "Firmware is bad forma", 't'|128
   BaudChg:              db "Error changing bau",    'd'|128
   FlashUp:              db "Error writing flas",    'h'|128
+  BadMd5:               db "MD5 hash failur",       'e'|128
 pend
 
 PrintRst16              proc

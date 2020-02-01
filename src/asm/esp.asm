@@ -57,6 +57,11 @@ SLIP                    proc
                         dl 0x00000000                   ; flash write size (16KB, will be written from FW header)
                         dl 0x00000000                   ; address (0, hardcoded for now)
   FlashBlockLen         equ $-FlashBlock                ; FlashBlock should be 16 bytes long
+  Md5Block:             dl 0x00000000                   ; address (0, hardcoded for now)
+                        dl 0x00100000                   ; uncompressed total size (1MB, hardcoded for now)
+                        dl 0x00000000                   ; unk1
+                        dl 0x00000000                   ; unk2
+  Md5BlockLen           equ $-Md5Block                  ; Md5Block should be 16 bytes long
   LastErr:              ds 0
 pend
 
@@ -214,7 +219,7 @@ ESPReadIntoBuffer       proc
                         ei
                         call ESPClearBuffer
                         ld a, (FRAMES)
-                        add a, 5
+WaitNFrames equ $+1:    add a, 5
                         ld (TimeoutFrame), a
                         ld bc, UART_GetStatus
                         ld hl, Buffer
@@ -384,10 +389,15 @@ NoDataBlock16:
                         call ESPReadIntoBuffer          ; Read the UART dry into the buffer, or at least 1024 bytes
                         ld a, (SLIP.HeaderOp)           ; Validate for the same Op we sent the command for
                         ld hl, Dummy32                  ; We don't want to preserve the value
-                        call ESPValidateCmdProc         ; a = Op, hl = ValWordAddr (carry set means error)
+ValidateProcSMC equ $+1:call ESPValidateCmdProc         ; < SMC a = Op, hl = ValWordAddr (carry set means error)
                         pop hl                          ; Retrieve ErrAddr (always, to balance stack)
                         ret nc                          ; If no error we can return
                         jp ErrorProc                    ; Otherwise signal a fatal error with the passed-in error msg
+pend
+
+ESPNoValidateCmdProc    proc
+                        or a
+                        ret
 pend
 
 ESPSetDataBlockProc     proc

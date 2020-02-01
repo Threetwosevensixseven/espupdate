@@ -124,19 +124,23 @@ Wait80Frames            proc
                         ret
 pend
 
-; From http://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Division
-DivideACbyDE            proc                            ; Divides AC by DE
-                        ld hl, 0
-                        ld b, 16
-Loop:                   sli c                           ; aka SLL/SL1
-                        rla
-                        adc hl, hl
-                        sbc hl, de
-                        jr nc, $+4
-                        add hl, de
-                        dec c
-                        djnz Loop
-                        ret                             ; Returns quotient in AC, remainder in HL
+Wait30Frames            proc
+                        WaitFrames(30)
+                        ret
+pend
+
+SaveReadTimeoutProc     proc                            ; a = FramesToWait
+                        push af
+                        ld a, (ESPReadIntoBuffer.WaitNFrames)
+                        ld (TimeoutBackup), a
+                        pop af
+Set:                    ld (ESPReadIntoBuffer.WaitNFrames), a
+                        ret
+pend
+
+RestoreReadTimeoutProc  proc
+                        ld a, (TimeoutBackup)
+                        jr SaveReadTimeoutProc.Set
 pend
 
 WaitKey                 proc
@@ -172,14 +176,5 @@ Loop:                   halt
                         di
 SavedStack equ $+1:     ld sp, SMC
                         ret
-pend
-
-TestData                proc
-                        ld hl, $C000                    ; Start loading at $8000
-                        ld bc, $4000                    ; Load up to 16KB of data
-                        call esxDOS.fRead
-                        ErrorIfCarry(Err.BadDot)
-                        PrintBufferHex($C000, 256)
-                        Freeze(1,3)
 pend
 

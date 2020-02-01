@@ -98,8 +98,8 @@ namespace AppendFW
                 //File.WriteAllBytes(Firmware.Replace(".bin", "_calc.bin"), fwBytes);
                 using (MD5 md5 = MD5.Create())
                 {
-                    byte[] bHash = md5.ComputeHash(fwBytes);
-                    header.Md5 = BitConverter.ToString(bHash).Replace("-", "").ToLowerInvariant();
+                    header.Md5 = md5.ComputeHash(fwBytes); // 16 bytes of binary, not hex string
+                    //header.Md5 = BitConverter.ToString(bHash).Replace("-", "").ToLowerInvariant();
                     //Console.WriteLine("MD5 Hash: " + header.Md5 + " (" + header.Md5.Length + ")");
                 }
 
