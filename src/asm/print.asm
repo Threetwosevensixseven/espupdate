@@ -2,7 +2,7 @@
 
 Msg                     proc
   Startup:              db "ESP UPDATE TOOL v1.", BuildNoValue
-                        db " (", BuildTimeSecsValue, ")"
+                        //db " (", BuildTimeSecsValue, ")"
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   ReadFW:               db "Reading firmware...", CR, 0
@@ -13,7 +13,7 @@ Msg                     proc
   SetBaud2:             db " baud, ", 0
   SetBaud3:             db " timings", CR, 0
   SendSync:             db "Syncing...", CR, 0
-  ResetESP:             db "Resetting ESP and retrying...", CR, 0
+  RetryESP:             db "Resetting ESP and retrying...", CR, 0
   ESPProg1:             db "Setting ESP programming mode...", CR, 0
   ESP8266EX:            db "Chip is ESP8266EX", CR, 0
   ESP8285:              db "Chip is ESP8285", CR, 0
@@ -35,8 +35,7 @@ Msg                     proc
   Written2:             db " bytes to flash  ", CR, 0
   GoodMd5:              db "Hash of data verified", CR, 0
   Finalize:             db "Finalising...", CR, 0
-  Finish4:              db "Resetting ESP...", CR, 0
-
+  ResetESP:              db "Resetting ESP...", CR, 0
 pend
 
 Err                     proc

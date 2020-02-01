@@ -246,7 +246,7 @@ SyncPass equ $+1:       jp c, NotSynced1                ; If we didn't sync the 
                         jr Synced
 NotSynced1:             ld hl,NotSynced2
                         ld (SyncPass), hl
-                        PrintMsg(Msg.ResetESP)          ; Reset and try a second time.
+                        PrintMsg(Msg.RetryESP)          ; Reset and try a second time.
                         nextreg 2, 128                  ; Set RST low
                         call Wait80Frames               ; Hold in reset a really long time
                         nextreg 2, 0                    ; Set RST high
@@ -607,7 +607,8 @@ BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block 
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
 
-                        call Wait30Frames                       ; Pause to simulate uploading
+                        call Wait5Frames                       ; Pause to simulate uploading
+                         call Wait5Frames                       ; Pause to simulate uploading
 
                         ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)
@@ -637,7 +638,7 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ; res = esp.flash_md5sum(address, uncsize)
                         ; res = esp.flash_md5sum(0, 0x00100000)
                         ; self.ESP_SPI_FLASH_MD5, struct.pack('<IIII', addr, size, 0, 0)
-                        SetReadTimeout(200)
+                        SetReadTimeout(100)
                         DisableReadValidate()
                         ESPSendCmdWithData(ESP_SPI_FLASH_MD5, SLIP.Md5Block, SLIP.Md5BlockLen, Err.BadMd5)
                         RestoreReadTimeout()
@@ -668,15 +669,17 @@ HashVerifyLoop:         ld a, (de)
                         PrintMsg(Msg.Finalize)                  ; "Finalising...", esptool.py prints "Leaving..." here
                         ESPSendCmdWithData(ESP_FLASH_BEGIN, SLIP.FinalizeBlock, SLIP.FinalizeBlockLen, Err.Finalize)
 
+                        ; Send an ESP_FLASH_DEFL_END command to exit the flash write
                         ; esp.flash_defl_finish(False)
                         ; pkt = struct.pack('<I', int(not reboot)) = 0x00000001
                         ; self.check_command("leave compressed flash mode", self.ESP_FLASH_DEFL_END, pkt)
-                        call WaitKey
                         ESPSendCmdWithData(ESP_FLASH_DEFL_END, SLIP.ExitBlock, SLIP.ExitBlockLen, Err.ExitWrite)
 
-
-
-
+                        ; Reset ESP with a normal (non-programming) reset
+                        PrintMsg(Msg.ResetESP)          ; "Resetting ESP..."
+                        nextreg 2, 128                  ; Set RST low
+                        call Wait5Frames                ; Hold in reset
+                        nextreg 2, 0                    ; Set RST high
 
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached
