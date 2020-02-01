@@ -31,32 +31,12 @@ Msg                     proc
   Upload2:              db " bytes...", CR, 0
   Upload3:              db "Writing at 0x", 0
   UploadLeft:           ds 28, 8:db 0
-
   Written1:             db "Written ", 0
   Written2:             db " bytes to flash  ", CR, 0
   GoodMd5:              db "Hash of data verified", CR, 0
+  Finalize:             db "Finalising...", CR, 0
   Finish4:              db "Resetting ESP...", CR, 0
 
-  //RcvSync:            db "Receiving sync", CR, 0
-  //ESPProg2:           db "Enabling GPIO0 output", CR, 0
-  //ESPProg3:           db "Setting RST low", CR, 0
-  //ESPProg4:           db "Setting GPIO0 low", CR, 0
-  //ESPProg5:           db "Setting RST high", CR, 0
-  //ESPProg6:           db "Setting GPIO0 high", CR, 0
-  //ESPProg7:           db "Disabling GPIO0 output", CR, 0
-  //ESPProg8:           db "Reading UART buffer...", CR, CR, 0
-  //SyncOK:             db "Sync OK", CR, 0
-  //Fuse1:              db "Reading eFuses...", CR, 0
-  //MAC1:               db "Reading MAC...", CR, 0
-  //Scroll:             db "Testing scroll", CR, CR, CR, CR, CR, CR, CR, CR, CR
-  //                    db CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR, CR
-  //                    db "Last line", CR, 0
-  //Speed1:             db "Restoring speed to ", 0
-  //Speed35:            db "3.5MHz", 0
-  //Speed07:            db "7MHz", 0
-  //Speed14:            db "14MHz", 0
-  //Speed28:            db "28MHz", 0
-  //Speed2:             db "(0x", 0
 pend
 
 Err                     proc
@@ -79,6 +59,7 @@ Err                     proc
   BaudChg:              db "Error changing bau",    'd'|128
   FlashUp:              db "Error writing flas",    'h'|128
   BadMd5:               db "MD5 hash failur",       'e'|128
+  Finalize:             db "Error finalizing writ", 'e'|128
 pend
 
 PrintRst16              proc

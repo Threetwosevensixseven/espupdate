@@ -62,6 +62,11 @@ SLIP                    proc
                         dl 0x00000000                   ; unk1
                         dl 0x00000000                   ; unk2
   Md5BlockLen           equ $-Md5Block                  ; Md5Block should be 16 bytes long
+  FinalizeBlock:        dl 0x00000000                   ; erase_size (0, hardcoded)
+                        dl 0x00000000                   ; num_blocks (0, hardcoded)
+                        dl 0x00000000                   ; FLASH_WRITE_SIZE (16KB, will be written from FW header)
+                        dl 0x00000000                   ; offset (0, hardcoded)
+  FinalizeBlockLen      equ $-FinalizeBlock        ; FinalizeBlock should be 16 bytes long
   LastErr:              ds 0
 pend
 

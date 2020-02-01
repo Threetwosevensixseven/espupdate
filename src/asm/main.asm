@@ -160,7 +160,8 @@ ReadMoreHeader:         inc hl
                         inc hl
                         ld d, (hl)
                         ld (DataBlockSize), de          ; Write DataBlockSize
-                        ld (SLIP.FlashBlock+8), de      ; (also write into lower word of SLIP header)
+                        ld (SLIP.FlashBlock+8), de      ; (also write into lower word of SLIP flash header)
+                        ld (SLIP.FinalizeBlock+8), de   ; (also write into lower word of SLIP finalize header)
                         inc hl
                         ld e, (hl)                      ; Read FWCompLen
                         inc hl
@@ -654,6 +655,19 @@ HashVerifyLoop:         ld a, (de)
                         ErrorIfNotZero(Err.BadMd5)              ; If any byte differs, raise "MD5 hash failure" error.
                         djnz HashVerifyLoop                     ; Repeat for all 16 bytes of MDS hash
                         PrintMsg(Msg.GoodMd5)                   ; "Hash of data verified"
+
+                        ; Send an ESP_FLASH_BEGIN command to begin the final sequence
+                        ; esp.flash_begin(0, 0)
+                        ; struct.pack('<IIII', erase_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
+                        ; erase_size = 0
+                        ; num_blocks = 0
+                        ; FLASH_WRITE_SIZE = 0x4000 (from extended firmware header)
+                        ; offset = 0
+                        PrintMsg(Msg.Finalize)                  ; "Finalising...", esptool.py prints "Leaving..." here
+                        ESPSendCmdWithData(ESP_FLASH_BEGIN, SLIP.FinalizeBlock, SLIP.FinalizeBlockLen, Err.Finalize)
+
+
+
 
 
                         if (ErrDebug)
