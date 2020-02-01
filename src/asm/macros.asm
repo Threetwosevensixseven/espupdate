@@ -177,6 +177,27 @@ ESPSendDataBlock        macro(Opcode, DataAddr, DataLen, Seq, ErrAddr)
                         call ESPSendCmdWithDataProc
 mend
 
+ESPSendDataBlockSeq     macro(Opcode, DataAddr, ErrAddr); As ESPSendDataBlock(), except:
+                        ld hl, DataAddr
+                        push de                         ; de = Seq, and
+                        push bc                         ; bc = DataLen
+                        call ESPSetDataBlockProc
+
+                        pop hl                          ; hl = DataLen
+                        pop de                          ; de = Seq
+                        push hl                         ; Save DataLen again for the ESPSendCmdWithDataProc call
+                        call ESPSetDataBlockHeaderProc
+
+                        pop hl
+                        ld de, 16
+                        add hl, de                      ; hl = DataLen+16
+                        ld a, Opcode
+                        ld de, DataAddr
+                        ld bc, ErrAddr
+                        ld ix, SLIP.DataBlock
+                        call ESPSendCmdWithDataProc
+mend
+
 SetUARTBaud             macro(BaudTable, BaudMsg)
                         ld hl, BaudTable
                         ld de, BaudMsg

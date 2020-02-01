@@ -52,10 +52,10 @@ SLIP                    proc
   ChgBaud:              dl 0x00119400                   ; New baud (1152000)
                         dl 0x0001c200                   ; Original baud (115200)
   ChgBaudLen            equ $-ChgBaud                   ; ChgBaud should be 8 bytes long
-  FlashBlock:           dl 0x00100000                   ; uncompressed total size (1MB)
-                        dl 0x0000001c                   ; total blocks (28)
-                        dl 0x00004000                   ; flash write size (16KB)
-                        dl 0x00000000                   ; address (0)
+  FlashBlock:           dl 0x00100000                   ; uncompressed total size (1MB, hardcoded for now)
+                        dl 0x00000000                   ; total blocks (28, will be written from FW header)
+                        dl 0x00000000                   ; flash write size (16KB, will be written from FW header)
+                        dl 0x00000000                   ; address (0, hardcoded for now)
   FlashBlockLen         equ $-FlashBlock                ; FlashBlock should be 16 bytes long
   LastErr:              ds 0
 pend
@@ -319,7 +319,13 @@ FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason 
                         or a
                         jp z, ErrorCd00                 ; Error code 00 is not a real error, it means success
                         push af
-                        PrintMsg(Msg.ErrCd)             ; "Error code: "
+                        /*ld a, (CRbeforeErr)
+                        or a
+                        jr z, NoCRBefore
+                        PrintMsg(Msg.EOL)
+                        xor a
+                        ld (CRbeforeErr), a  */
+NoCRBefore:             PrintMsg(Msg.ErrCd)             ; "Error code: "
                         pop af
                         push af
                         call PrintAHexNoSpace           ; Print A in hex

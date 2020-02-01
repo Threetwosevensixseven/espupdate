@@ -160,6 +160,7 @@ ReadMoreHeader:         inc hl
                         inc hl
                         ld d, (hl)
                         ld (DataBlockSize), de          ; Write DataBlockSize
+                        ld (SLIP.FlashBlock+8), de      ; (also write into lower word of SLIP header)
                         inc hl
                         ld e, (hl)                      ; Read FWCompLen
                         inc hl
@@ -178,6 +179,7 @@ ReadMoreHeader:         inc hl
                         inc hl
                         ld d, (hl)
                         ld (BlockCount), de             ; Write BlockCount
+                        ld (SLIP.FlashBlock+4), de      ; (also write into lower word of SLIP header)
                         inc hl
                         ld c, (hl)                      ; Read FWCompLenStr size
                         ld b, 0
@@ -551,16 +553,34 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ld hl, FWCompLenStr
                         call PrintRst16                         ; Print compresed size in decimal
                         PrintMsg(Msg.Upload2)                   ; " bytes..."
-                        ld ix, (BlockHeaderStart)               ; IX points to current block header
                         ld a, 1
                         ld (CRbeforeErr), a
+                        ld hl, 0
+                        ld (BlockSeqNo), hl
+
+                        call WaitKey
+
+                        ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
+                        ; blocks = esp.flash_defl_begin(1048576, 457535, 0)
+                        ; blocks = esp.flash_defl_begin(0x00100000, 0x0006FB3F, 0)
+                        ; num_blocks = (compsize + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 28
+                        ; erase_blocks = (size + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 64
+                        ; write_size = size = 1048576
+                        ; struct.pack('<IIII', write_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
+                        ; FLASH_WRITE_SIZE = 0x4000 (16K)
+                        ; offset = 0
+                        ; SLIP.FlashBlock was already prepopulated when we read the firmware header
+                        ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
+
 FlashLoop:
                         PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
-                        push ix
-                        pop hl
+                        ld hl, (BlockHeaderStart)
+                        ld e, (hl)
                         inc hl
-                        inc hl                                  ; "00000000 (3%)  "
-                        ld de, Progress
+                        ld d, (hl)
+                        ld (BlockDataLen), de                   ; Compressed block size (DataLen)
+                        inc hl
+                        ld de, Progress                         ; "00000000 (3%)  " etc
                         push de
                         ld bc, 15
                         ldir
@@ -568,10 +588,45 @@ FlashLoop:
                         call PrintRst16                         ; Print address and percentage
                         PrintMsg(Msg.UploadLeft)                ; Print left 15 chars
 
-                        call Wait80Frames                       ; Pause to simulate uploading
+                        ; print('\rWriting at 0x%08x... (%d %%)' % (address + seq * esp.FLASH_WRITE_SIZE,
+                        ; 100 * (seq + 1) // blocks), end='')
+                        ; block = image[0:esp.FLASH_WRITE_SIZE]
+                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
+                        ; ratio = 2.3 (maybe 7 frames?)
+                        ; image = image[esp.FLASH_WRITE_SIZE:]
+                        ; seq += 1
+                        ; written += len(block)
 
+                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
+                        ; self.ESP_FLASH_DEFL_DATA, struct.pack('<IIII', len(data), seq, 0, 0) + data,
+                        ;   self.checksum(data), timeout=timeout) - line 632
+
+                        ld hl, $C000                    ; Load 16K of compressed firmware data
+                        ld bc, $4000                    ; into the buffer at $C000
+                        call esxDOS.fRead
+                        ErrorIfCarry(Err.ReadFW)
+BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block size (DataLen)
+BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
+                        //CSBreak()
+
+                        //ld a, e
+                        //cp 1
+                        //jr nz, NoBreak
+                        //CSBreak()
+NoBreak:
+                        //ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
+                        ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
+
+                        call Wait80Frames                       ; Pause to simulate uploading
+                        //CSBreak()
+
+                        ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)
-                        add ix, de                              ; Move block header pointer to next block
+                        add hl, de                              ; Move block header pointer to next block
+                        ld (BlockHeaderStart), hl
+                        ld hl, (BlockSeqNo)                     ; Increase and save block sequence no
+                        inc hl
+                        ld (BlockSeqNo), hl
                         ld hl, (BlockCount)
                         dec hl                                  ; Decrease and save block count
                         ld (BlockCount), hl
@@ -586,36 +641,10 @@ FlashLoop:
                         PrintMsg(Msg.Finish2)                   ; " bytes to flash "
                         PrintMsg(Msg.Finish3)
 
-                        ; blocks = esp.flash_defl_begin(uncsize, len(image), address)
-                        ; blocks = esp.flash_defl_begin(1048576, 457535, 0)
-                        ; blocks = esp.flash_defl_begin(0x100000, 0x6FB3F, 0)
-                        ; num_blocks = (compsize + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 28
-                        ; erase_blocks = (size + self.FLASH_WRITE_SIZE - 1) // self.FLASH_WRITE_SIZE = 64
-                        ; write_size = size = 1048576
-                        ; struct.pack('<IIII', write_size, num_blocks, self.FLASH_WRITE_SIZE, offset)
-                        ; FLASH_WRITE_SIZE = 0x4000 (16K)
-                        ; offset = 0
-                        ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
 
-                        ; print('\rWriting at 0x%08x... (%d %%)' % (address + seq * esp.FLASH_WRITE_SIZE,
-                        ; 100 * (seq + 1) // blocks), end='')
-                        ; block = image[0:esp.FLASH_WRITE_SIZE]
-                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
-                        ; ratio = 2.3 (maybee 7 frames?)
-                        ; image = image[esp.FLASH_WRITE_SIZE:]
-                        ; seq += 1
-                        ; written += len(block)
 
-                        ; esp.flash_defl_block(block, seq, timeout=DEFAULT_TIMEOUT * ratio)
-                        ; self.ESP_FLASH_DEFL_DATA, struct.pack('<IIII', len(data), seq, 0, 0) + data,
-                        ;   self.checksum(data), timeout=timeout) - line 632
 
-                        ld hl, $C000                    ; Load 16K of compressed firmware data
-                        ld bc, $4000                    ; into the buffer at $C000
-                        call esxDOS.fRead
-                        ErrorIfCarry(Err.ReadFW)
-                        //call WaitKey
-                        ESPSendDataBlock(ESP_FLASH_DEFL_DATA, $C000, $4000, 0, Err.FlashUp)
+
 
                         //zeusprinthex "Buffer:     ", Buffer
                         //zeusprinthex "eFuses:     ", eFuses
