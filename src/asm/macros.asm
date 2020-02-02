@@ -88,6 +88,13 @@ ErrorIfNoCarry          macro(ErrAddr)                  ; Parameterised wrapper 
 Continue:
 mend
 
+ErrorIfZero             macro(ErrAddr)                  ; Parameterised wrapper for throwing error if loop overruns
+                        jp nz, Continue
+                        ld hl, ErrAddr
+                        jp ErrorProc
+Continue:
+mend
+
 ErrorIfNotZero          macro(ErrAddr)                  ; Parameterised wrapper for throwing error after comparison
                         jp z, Continue
                         ld hl, ErrAddr
@@ -171,6 +178,12 @@ FillLDIR                macro(SourceAddr, Size, Value)  ; Parameterised wrapper 
                         ld de, SourceAddr+1
                         ld bc, Size-1
                         ldir
+mend
+
+GetSizedArg             macro(ArgTailPtr, DestAddr)    ; Parameterised wrapper for arg parser
+                        ld hl, (ArgTailPtr)
+                        ld de, DestAddr
+                        call GetSizedArgProc
 mend
 
 SetUARTBaud             macro(BaudTable, BaudMsg)       ; Parameterised wrapper for UART baud setting routine

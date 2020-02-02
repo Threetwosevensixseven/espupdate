@@ -35,6 +35,21 @@ Msg                     proc
   GoodMd5:              db "MD5 hash verified", CR, 0
   Finalize:             db "Finalising new firmware...", CR, 0
   ResetESP:             db "Resetting ESP...", CR, 0
+  Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
+                        db "espupdate [-h]", CR
+                        db "Update ESP with default firmware", CR, CR
+                        db "espupdate FILENAME [-h]", CR
+                        db "Update ESP with the firmware in a file", CR, CR
+                        db "OPTIONS", CR, CR
+                        db "  FILENAME", CR
+                        db "  A file containing ESP firmware  in the NXESP format", CR
+                        db "  For more info, see the FAQ at:", CR
+                        db "  tinyurl.com/espfaq", CR, CR
+                        db "  -h", CR
+                        db "  Display this help", CR, CR
+                        db "ESP UPDATE TOOL v1.", BuildNoValue, CR
+                        db BuildDateValue, " ", BuildTimeSecsValue, CR
+                        db Copyright, " 2020 Robin Verhagen-Guest", CR, 0
 pend
 
 Err                     proc
@@ -43,6 +58,8 @@ Err                     proc
   NoMem:                db "4 Out of memor",        'y'|128
   NotNext:              db "Spectrum Next require", 'd'|128
   NotOS:                db "NextZXOS require",      'd'|128
+  ArgsTooBig:           db "Arguments too lon",     'g'|128
+  ArgsBad:              db "Invalid Argument",      's'|128
   NotNB:                db "NextBASIC require",     'd'|128
   NoSync:               db "Sync error or no ES",   'P'|128
   UnknownOUI:           db "Unknown OUI erro",      'r'|128
@@ -52,6 +69,7 @@ Err                     proc
   FlashSet:             db "Flash param error ",    '1'|128
   FlashUpd:             db "Flash param error ",    '2'|128
   ReadFW:               db "Error reading firmwar", 'e'|128
+  FWMissing:            db "Firmware missin",       'g'|128
   NotFW:                db "Not a firmware fil",    'e'|128
   BadFW:                db "Firmware is bad forma", 't'|128
   BaudChg:              db "Error changing bau",    'd'|128

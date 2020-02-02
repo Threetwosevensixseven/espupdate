@@ -41,9 +41,24 @@ Handle                  db 255
 ;                       On entry to a dot command, the file is left open with the file pointer
 ;                       positioned directly after the first 8K.
 ;                       This call returns meaningless results if not called from a dot command.
-GetHandle:
-                        Rst8(esxDOS.M_GETHANDLE)        ; Get handle
+GetHandle:              Rst8(esxDOS.M_GETHANDLE)        ; Get handle
                         ld (Handle), a                  ; Save handle
+                        ret                             ; Returns a file handler in 'A' register.
+
+; Function:             Open file
+; In:                   HL = pointer to file name (ASCIIZ) (IX for non-dot commands)
+;                       B  = open mode
+;                       A  = Drive
+; Out:                  A  = file handle
+;                       On error: Carry set
+;                         A = 5   File not found
+;                         A = 7   Name error - not 8.3?
+;                         A = 11  Drive not found
+;
+fOpen:                  ld a, '*'                       ; get drive we're on
+                        ld b, FA_READ                   ; b = open mode
+                        Rst8(esxDOS.F_OPEN)             ; open read mode
+                        ld (Handle), a
                         ret                             ; Returns a file handler in 'A' register.
 
 ; Function:             Read bytes from a file
@@ -51,9 +66,17 @@ GetHandle:
 ;                       HL = address to load into (IX for non-dot commands)
 ;                       BC = number of bytes to read
 ; Out:                  Carry flag is set if read fails.
-fRead:
-                        ld a, (Handle)                  ; file handle
+;
+fRead:                  ld a, (Handle)                  ; file handle
                         Rst8(esxDOS.F_READ)             ; read file
+                        ret
+
+; Function:             Close file
+; In:                   A  = file handle
+; Out:                  Carry flag active if error when closing
+;
+fClose:                 ld a, (Handle)
+                        Rst8(esxDOS.F_CLOSE)            ; close file
                         ret
 
 ; Function:             Seek into file
@@ -64,8 +87,7 @@ fRead:
 ;                       BCDE = bytes to seek
 ; Out:                  BCDE = Current file pointer. (*does not return this yet)
 ;
-/*fSeek:
-                        ld a, (Handle)                  ; file handle
+/*fSeek:                ld a, (Handle)                  ; file handle
                         or a                            ; is it zero?
                         ret z                           ; if so return
                         Rst8(esxDOS.F_SEEK)             ; seek into file

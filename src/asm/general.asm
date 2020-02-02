@@ -178,3 +178,142 @@ Loop2:                  xor a
                         ret
 pend*/
 
+/*CopyArgs              proc                            ; Copies args from BASIC to safe buffer inside dot command,
+                        xor a                           ; using CR or colon as a terminator, unless they appear inside
+                        ld (IsInsideQuote), a           ; double quotes.
+                        ld hl, (SavedArgs)
+                        ld a, h
+                        or l
+                        jr z, NoArgs
+                        ld de, Args
+                        ld bc, ArgsLen
+ArgsLoop:               ld a, (hl)
+                        cp '"'                          ; If we are inside quotes,
+                        jr nz, NotQuote                  ; we don't want to treat CR or colon as end of args
+                        ex af, af'
+IsInsideQuote equ $+1:  ld a, SMC                       ; Flip IsInsideQuote flag
+                        xor 1
+                        ld (IsInsideQuote), a
+                        jr z, OutsideQuote
+                        ld ix, ReadArgChar
+                        jr InsideOutside
+OutsideQuote:           ld ix, CheckCRColon
+InsideOutside:          ld (NotQuote+1), ix
+                        jr nz, FinishedQuoteCheck       ; If inside quote, skip CR and colon check
+                        ex af, af'
+NotQuote:               jp CheckCRColon
+CheckCRColon:           cp CR
+                        jr z, ArgsEnd
+                        cp ':'
+                        jr z, ArgsEnd
+                        jr ReadArgChar
+FinishedQuoteCheck:     ex af, af'
+ReadArgChar:            ld (de), a
+                        dec bc
+                        ld a, b
+                        or c
+                        ErrorIfZero(Err.ArgsTooBig)
+                        inc hl
+                        inc de
+                        jr ArgsLoop
+ArgsEnd:                ld hl, Args
+                        ld (SavedArgs), hl              ; Save start of copied args
+                        ex de, hl
+                        or a
+                        sbc hl, de
+                        ld (SavedArgsLen), hl           ; Save length of copied args
+NoArgs:                 ret
+pend*/
+
+; ***************************************************************************
+; * Parse an argument from the command tail                                 *
+; ***************************************************************************
+; Entry: HL=command tail
+;        DE=destination for argument
+; Exit:  Fc=0 if no argument
+;        Fc=1: parsed argument has been copied to DE and null-terminated
+;        HL=command tail after this argument
+;        BC=length of argument
+; NOTE: BC is validated to be 1..255; if not, it does not return but instead
+;       exits via show_usage.
+;
+; Routine provided by Garry Lancaster, with thanks :) Original is here:
+; https://gitlab.com/thesmog358/tbblue/blob/master/src/asm/dot_commands/defrag.asm#L599
+GetSizedArgProc         proc
+                        ld a, h
+                        or l
+                        ret z                           ; exit with Fc=0 if hl is $0000 (no args)
+                        ld bc, 0                        ; initialise size to zero
+Loop:                   ld a, (hl)
+                        inc hl
+                        and a
+                        ret z                           ; exit with Fc=0 if $00
+                        cp CR
+                        ret z                           ; or if CR
+                        cp ':'
+                        ret z                           ; or if ':'
+                        cp ' '
+                        jr z, Loop                      ; skip any spaces
+                        cp '"'
+                        jr z, Quoted                    ; on for a quoted arg
+Unquoted:               ld (de), a                      ; store next char into dest
+                        inc de
+                        inc c                           ; increment length
+                        jr z, BadSize                   ; don't allow >255
+                        ld  a, (hl)
+                        and a
+                        jr z, Complete                  ; finished if found $00
+                        cp CR
+                        jr z, Complete                  ; or CR
+                        cp ':'
+                        jr z, Complete                  ; or ':'
+                        cp '"'
+                        jr z, Complete                  ; or '"' indicating start of next arg
+                        inc hl
+                        cp ' '
+                        jr nz, Unquoted                 ; continue until space
+Complete:               xor a
+                        ld (de), a                      ; terminate argument with NULL
+                        ld a, b
+                        or c
+                        jr z, BadSize                   ; don't allow zero-length args
+                        scf                             ; Fc=1, argument found
+                        ret
+Quoted:                 ld a, (hl)
+                        and a
+                        jr z, Complete                  ; finished if found $00
+                        cp CR
+                        jr z, Complete                  ; or CR
+                        inc hl
+                        cp '"'
+                        jr z, Complete                  ; finished when next quote consumed
+                        ld (de), a                      ; store next char into dest
+                        inc de
+                        inc c                           ; increment length
+                        jr z, BadSize                   ; don't allow >255
+                        jr Quoted
+BadSize:                pop af                          ; discard return address
+                        ErrorAlways(Err.ArgsBad)
+pend
+
+ParseHelp               proc
+                        ret nc                          ; Return immediately if no arg found
+                        ld a, b
+                        or c
+                        cp 2
+                        ret nz
+                        push hl
+                        ld hl, ArgBuffer
+                        ld a, (hl)
+                        cp '-'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp 'h'
+                        jr nz, Return
+                        ld a, 1
+                        ld (WantsHelp), a
+Return:                 pop hl
+                        ret
+pend
+

@@ -18,8 +18,10 @@ Start:
 Begin:                  di                              ; We run with interrupts off apart from printing and halts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
                         ld (Return.IY1), iy             ; Put IY safe, just in case
-                        ld sp, $4000                    ; Put stack safe inside dot command
+                        ld sp, $4000                    ; Put stack safe inside dot comman
+
                         ld (SavedArgs), hl              ; Save args for later
+
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls
                         PrintMsg(Msg.Startup)           ; "ESP Update Tool v1.x"
 
@@ -56,6 +58,28 @@ IsANext:
                         ld (RestoreSpeed.Saved), a      ; Save current speed so it can be restored on exit.
                         nextreg Reg.CPUSpeed, %11       ; Set current desired speed to 28MHz.
 
+                        GetSizedArg(SavedArgs, FWFileName) ; Parse filename from first arg
+                        ld a, 0
+                        jr nc, SaveFileArg
+                        inc a
+SaveFileArg:            ld (HasFWFileName), a           ; Save whether we have a filename or now
+
+ArgLoop:                ld de, ArgBuffer                ; Parse remaining args in a loop
+                        call GetSizedArgProc
+                        jr nc, NoMoreArgs
+                        call ParseHelp
+                        jr ArgLoop
+NoMoreArgs:
+                        ld a, (WantsHelp)
+                        or a
+                        jr z, NoHelp
+                        PrintMsg(Msg.Help)
+                        if (ErrDebug)
+                          Freeze(1,2)
+                        else
+                          jp Return.ToBasic
+                        endif
+NoHelp:
                         ; This dot command is way larger than 8KB, so we have a strategy for dealing with that.
                         ; NextZXOS will automatically load the first 8KB, which contains all the core code,
                         ; and will leave the file handle open. If the core code is less than 8KB, Zeus will
@@ -91,14 +115,22 @@ IsANext:
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
-ReadFW:
+CheckFW:
                         PrintMsg(Msg.ReadFW)
-                        ld hl, $C000                     ; Start loading at $C000
-                        ld bc, $0007                     ; Load 7 bytes of data
+                        ld a, (HasFWFileName)           ; Do we have a filename from the first arg?
+                        or a
+                        jr z, ReadFW                    ; We don't have a filename, so try to read the appended FW
+                        call esxDOS.fClose              ; Close the dot command, but don't bother handling any errors
+                        ld hl, FWFileName
+                        call esxDOS.fOpen               ; Open the external firmware file from its filename
+                        ErrorIfCarry(Err.ReadFW)        ; Throw an error if esxDOS returned one
+ReadFW:                 ld hl, $C000                    ; Start loading at $C000
+                        ld bc, $0007                    ; Load 7 bytes of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.ReadFW)
-                        ld a, b
-                        or c
+                        ld a, b                         ; If we read zero bytes, either FW wasn't appended to
+                        or c                            ; the dot cmd, or the external FW file was zero length.
+                        ErrorIfZero(Err.FWMissing)
                         cp 7                            ; Check we read 7 bytes
                         jp nz, BadFormat
                         ld hl, $C000                    ; Check magic bytes NXESP
@@ -545,16 +577,16 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; flash_params = struct.pack(b'BB', flash_mode, flash_size + flash_freq) = 0x2102
                         ; flash_mode appears first, flash_size + flash_freq appears second
                         ; replace bytes 2 and 3 (zero-based) of image with these two bytes
-                        PrintMsg(Msg.FlashParams)               ; "Flash params set to 0x"
+                        PrintMsg(Msg.FlashParams)       ; "Flash params set to 0x"
                         ld a, (FlashParams)
-                        call PrintAHexNoSpace                   ; Print param word in hex
+                        call PrintAHexNoSpace           ; Print param word in hex
                         ld a, (FlashParams+1)
                         call PrintAHexNoSpace
                         PrintMsg(Msg.EOL)
-                        PrintMsg(Msg.Upload1)                   ; "Uploading "
+                        PrintMsg(Msg.Upload1)           ; "Uploading "
                         ld hl, FWCompLenStr
-                        call PrintRst16                         ; Print compresed size in decimal
-                        PrintMsg(Msg.Upload2)                   ; " bytes..."
+                        call PrintRst16                 ; Print compresed size in decimal
+                        PrintMsg(Msg.Upload2)           ; " bytes..."
                         ld a, 1
                         ld (CRbeforeErr), a
                         ld hl, 0
@@ -572,20 +604,20 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; SLIP.FlashBlock was already prepopulated when we read the firmware header
                         ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
 FlashLoop:
-                        PrintMsg(Msg.Upload3)                   ; "Writing at 0x"
+                        PrintMsg(Msg.Upload3)           ; "Writing at 0x"
                         ld hl, (BlockHeaderStart)
                         ld e, (hl)
                         inc hl
                         ld d, (hl)
-                        ld (BlockDataLen), de                   ; Compressed block size (DataLen)
+                        ld (BlockDataLen), de           ; Compressed block size (DataLen)
                         inc hl
-                        ld de, Progress                         ; "00000000 (3%)  " etc
+                        ld de, Progress                 ; "00000000 (3%)  " etc
                         push de
                         ld bc, 15
                         ldir
                         pop hl
-                        call PrintRst16                         ; Print address and percentage
-                        PrintMsg(Msg.UploadLeft)                ; Print left 15 chars
+                        call PrintRst16                 ; Print address and percentage
+                        PrintMsg(Msg.UploadLeft)        ; Print left 15 chars
 
                         ; print('\rWriting at 0x%08x... (%d %%)' % (address + seq * esp.FLASH_WRITE_SIZE,
                         ; 100 * (seq + 1) // blocks), end='')
@@ -608,28 +640,27 @@ BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block 
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
 
-                        call Wait5Frames                       ; Pause to simulate uploading
-                         call Wait5Frames                       ; Pause to simulate uploading
+                        call Wait5Frames                ; Pause to allow decompression
 
                         ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)
-                        add hl, de                              ; Move block header pointer to next block
+                        add hl, de                      ; Move block header pointer to next block
                         ld (BlockHeaderStart), hl
-                        ld hl, (BlockSeqNo)                     ; Increase and save block sequence no
+                        ld hl, (BlockSeqNo)             ; Increase and save block sequence no
                         inc hl
                         ld (BlockSeqNo), hl
                         ld hl, (BlockCount)
-                        dec hl                                  ; Decrease and save block count
+                        dec hl                          ; Decrease and save block count
                         ld (BlockCount), hl
                         ld a, h
                         or l
-                        jp nz, FlashLoop                        ; If more blocks remain, upload again
+                        jp nz, FlashLoop                ; If more blocks remain, upload again
                         xor a
                         ld (CRbeforeErr), a
-                        PrintMsg(Msg.Written1)                  ; "Wrote "
+                        PrintMsg(Msg.Written1)          ; "Wrote "
                         ld hl, FWCompLenStr
-                        call PrintRst16                         ; Print compressed size in decimal
-                        PrintMsg(Msg.Written2)                  ; " bytes to flash "
+                        call PrintRst16                 ; Print compressed size in decimal
+                        PrintMsg(Msg.Written2)          ; " bytes to flash "
 
                         ; Ask ESP uploader stub to calculate the MD5 hash of the 1MB of data we just uploaded,
                         ; after the stub has decompressed it. It will return it in a SLIP response, after a
@@ -647,16 +678,16 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
 
                         ; Compare the 32 returned bytes in the buffer against the precalculated MD5 hash
                         ; we read from the firmware extended header.
-                        ld hl, Buffer+9                         ; Received hash start address, in buffer.
-                        ld de, FWMD5                            ; Precalculated hash start address, in vars.
-                        ld b, 16                                ; Size of hash, MD5 is always 16 bytes (not hex string)
+                        ld hl, Buffer+9                 ; Received hash start address, in buffer.
+                        ld de, FWMD5                    ; Precalculated hash start address, in vars.
+                        ld b, 16                        ; Size of hash, MD5 is always 16 bytes (not hex string)
 HashVerifyLoop:         ld a, (de)
                         cp (hl)
-                        inc hl                                  ; 16bit inc doesn't affect flags
+                        inc hl                          ; 16bit inc doesn't affect flags
                         inc de
-                        ErrorIfNotZero(Err.BadMd5)              ; If any byte differs, raise "MD5 hash failure" error.
-                        djnz HashVerifyLoop                     ; Repeat for all 16 bytes of MDS hash
-                        PrintMsg(Msg.GoodMd5)                   ; "Hash of data verified"
+                        ErrorIfNotZero(Err.BadMd5)      ; If any byte differs, raise "MD5 hash failure" error.
+                        djnz HashVerifyLoop             ; Repeat for all 16 bytes of MDS hash
+                        PrintMsg(Msg.GoodMd5)           ; "Hash of data verified"
 
                         ; Send an ESP_FLASH_BEGIN command to begin the final sequence. esptool.py says:
                         ; # skip sending flash_finish to ROM loader here,
@@ -682,6 +713,7 @@ HashVerifyLoop:         ld a, (de)
                         call Wait5Frames                ; Hold in reset
                         nextreg 2, 0                    ; Set RST high
 
+EndOfCommand:
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached
                           ; The "success" point, and does a red/blue border effect instead of

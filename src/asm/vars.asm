@@ -2,6 +2,7 @@
 
 ; Application
 SavedArgs:              dw 0
+SavedArgsLen            dw 0
 SavedStackPrint:        dw $0000
 IsNext:                 ds 0
 
@@ -39,6 +40,10 @@ FilePointer:            ds 4
 Progress:               ds 16                   ; 15 chars with terminating null
 CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
 TimeoutBackup:          ds 1
+FWFileName:             ds 256                  ; Filename buffer to load firmware from
+HasFWFileName:          ds 1
+ArgBuffer:              ds 256
+WantsHelp:              ds 1
 
 Features                proc
   Is8285:               ds 1
