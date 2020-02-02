@@ -2,11 +2,12 @@
                                                         ; Assembles with regular version of Zeus (not Next version),
 zeusemulate             "48K", "RAW", "NOROM"           ; because that makes it easier to assemble dot commands
 zoSupportStringEscapes  = true;                         ; Download Zeus.exe from http://www.desdes.com/products/oldfiles/
-optionsize 5
-CSpect optionbool 15, -15, "CSpect", false              ; Option in Zeus GUI to launch CSpect
-RealESP optionbool 80, -15, "Real ESP", false           ; Launch CSpect with physical ESP in USB adaptor
-UploadNext optionbool 160, -15, "Next", false           ; Copy dot command to Next FlashAir card
-ErrDebug optionbool 212, -15, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
+optionsize 10
+CSpect optionbool 15, -10, "CSpect", false              ; Option in Zeus GUI to launch CSpect
+RealESP optionbool 80, -10, "Real ESP", false           ; Launch CSpect with physical ESP in USB adaptor
+UploadNext optionbool 160, -10, "Next", false           ; Copy dot command to Next FlashAir card
+ErrDebug optionbool 212, -10, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
+AppendFW optionbool 270, -10, "AppendFW", true          ; Pad dot command and append the NXESP-formatted firmware
 
 org $2000                                               ; Dot commands always start at $2000
 Start:
@@ -725,20 +726,16 @@ endif
 
 output_bin "..\\..\\dot\\ESPUPDATE", Start, Length              ; Binary for project, and for CSpect image.
 
-if enabled UploadNext
-  zeusinvoke "..\\..\\build\\builddot.bat"                      ; Just build
-  output_bin "R:\\dot\\ESPUPDATE", Start, Length                ; NextZXOS  dot command (LFN)
-  //output_bin "R:\\dot\\extra\\ESPUPDATE", Start, Length       ; 48K BASIC dot command (LFN)
-  //output_bin "R:\\bin\\ESPUPD", Start, Length                 ; esxDOS    dot command (8+3)
+BuildArgs = "";
+if enabled CSpect
+  BuildArgs = BuildArgs + "-c "
+endif
+if enabled RealESP
+  BuildArgs = BuildArgs + "-e "
+endif
+if enabled AppendFW
+  BuildArgs = BuildArgs + "-a "
 endif
 
-if enabled CSpect
-  if enabled RealESP
-    zeusinvoke "..\\..\\build\\cspect.bat"                      ; Build, copy to SD image, launch CSpect w/ USB ESP
-  else
-    zeusinvoke "..\\..\\build\\cspect-emulate-esp.bat"          ; Build, copy to SD image, launch CSpect w/ emulated ESP
-  endif
-else
-  zeusinvoke "..\\..\\build\\builddot.bat"                      ; Just build
-endif
+zeusinvoke "..\\..\\build\\builddot.bat " + BuildArgs ; Run batch file with args
 
