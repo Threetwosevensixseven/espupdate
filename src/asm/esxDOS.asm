@@ -64,11 +64,11 @@ fRead:
 ;                       BCDE = bytes to seek
 ; Out:                  BCDE = Current file pointer. (*does not return this yet)
 ;
-fSeek:
+/*fSeek:
                         ld a, (Handle)                  ; file handle
                         or a                            ; is it zero?
                         ret z                           ; if so return
                         Rst8(esxDOS.F_SEEK)             ; seek into file
                         ret
-pend
+pend*/
 

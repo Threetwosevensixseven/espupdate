@@ -228,7 +228,7 @@ EnableProgMode:
                         //PrintMsg(Msg.ESPProg7)        ; "Disabling GPIO0 output"
                         pop af
                         and %1111 1110                  ; Clear bit 0
-                        nextreg 168, a                  ; to enable GPIO0
+                        nextreg 168, a                  ; to disable GPIO0
                         push af
 DoSync:
                         PrintMsg(Msg.SendSync)
@@ -469,7 +469,7 @@ UploadStub:
                         ESPSendDataBlock(ESP_MEM_DATA, ESP8266StubData+0x0000, 0x0300, 0, Err.StubUpload)
 
                         ; Run stub
-                        PrintMsg(Msg.Stub2)
+                        //PrintMsg(Msg.Stub2)
                         ; mem_finish(stub['entry']) ; 0x4010E004
                         ESPSendCmdWithData(ESP_MEM_END, SLIP.EntryBlock, SLIP.EntryBlockLen, Err.StubUpload)
 

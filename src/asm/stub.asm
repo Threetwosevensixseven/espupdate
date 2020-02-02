@@ -9,6 +9,17 @@ disp -$4000                     ; of the dot command/
 
 UpperCodeStart:                 ; after allocating and paging two new 8K banks from NextZXOS.
 
+ESP8266StubText:
+import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_text.bin"
+ESP8266StubTextLen      equ $-1
+
+ESP8266StubData:
+import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_data.bin"
+ESP8266StubDataLen      equ $-1
+
+; Anything after here has addresses allocated, but doesn't get appended to the dot command during assembly.
+; It does, however, get padded to 24K by AppendFW.exe.
+
 Buffer                  proc
                         ds 1024
   Len                   equ $-Buffer
@@ -18,12 +29,4 @@ Header                  proc
   Buffer:               ds 1024
   Len                   equ $-Header
 pend
-
-ESP8266StubText:
-import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_text.bin"
-ESP8266StubTextLen      equ $-1
-
-ESP8266StubData:
-import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_data.bin"
-ESP8266StubDataLen      equ $-1
 

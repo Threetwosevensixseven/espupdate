@@ -1,7 +1,7 @@
 ZeusBak
-/build/AppendFW.pdb
-/build/AppendFW.vshost.exe
-/build/AppendFW.vshost.exe.manifest
+/build/*.pdb
+/build/*.vshost.*
+/build/*.exe.*
 bin
 obj
 *.suo
@@ -20,7 +20,6 @@ obj
 /build/keymap.dat
 /fw/ESP8266_FULL_V3.3_SPUGS/ESP8266_stub_flashsize.bin
 /fw/ESP8266_FULL_V3.3_SPUGS/ESP8266_FULL_V3.3_SPUGS.zip
-/build/AppendFW.exe.config
-/build/AppendFW.vshost.exe.config
-/src/csharp/packages
+/src/netstd/packages
 /log
+

@@ -22,9 +22,8 @@ Msg                     proc
   Success:              db "ESP updated successfully!", CR, 0
   ErrCd:                db "Error code: ", 0
   MAC2:                 db "MAC: ", 0
-
   Stub1:                db "Uploading stub...", CR, 0
-  Stub2:                db "Running stub...", CR, 0
+  //Stub2:                db "Running stub...", CR, 0
   Stub3:                db "Stub running", CR, 0
   FlashParams:          db "Flash params set to 0x", 0
   Upload1:              db "Uploading ", 0
@@ -33,9 +32,9 @@ Msg                     proc
   UploadLeft:           ds 28, 8:db 0
   Written1:             db "Written ", 0
   Written2:             db " bytes to flash  ", CR, 0
-  GoodMd5:              db "Hash of data verified", CR, 0
-  Finalize:             db "Finalising...", CR, 0
-  ResetESP:              db "Resetting ESP...", CR, 0
+  GoodMd5:              db "MD5 hash verified", CR, 0
+  Finalize:             db "Finalising new firmware...", CR, 0
+  ResetESP:             db "Resetting ESP...", CR, 0
 pend
 
 Err                     proc

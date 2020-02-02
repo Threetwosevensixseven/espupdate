@@ -74,7 +74,7 @@ pend
 
 Baud                    proc Table:
 b115200:                dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
-b1152000:               dw $8018, $8019, $801A, $801A, $801B, $801C, $801D, $8017
+//b1152000:               dw $8018, $8019, $801A, $801A, $801B, $801C, $801D, $8017
 pend
 
 Timings:                proc Table:
@@ -331,12 +331,12 @@ FailWithReason:         ld (SLIP.LastErr), a            ; Save the error reason 
                         or a
                         jp z, ErrorCd00                 ; Error code 00 is not a real error, it means success
                         push af
-                        /*ld a, (CRbeforeErr)
+                        ld a, (CRbeforeErr)
                         or a
                         jr z, NoCRBefore
                         PrintMsg(Msg.EOL)
                         xor a
-                        ld (CRbeforeErr), a  */
+                        ld (CRbeforeErr), a
 NoCRBefore:             PrintMsg(Msg.ErrCd)             ; "Error code: "
                         pop af
                         push af

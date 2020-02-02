@@ -1,37 +1,37 @@
 ; general.asm
 
-InstallErrorHandler     proc
-                        ld hl, ErrorHandler
-                        Rst8(esxDOS.M_ERRH)
-                        ret
+InstallErrorHandler     proc                            ; Our error handler gets called by the OS if SCROLL? N happens
+                        ld hl, ErrorHandler             ; during printing, or any other ROM errors get thrown. We trap
+                        Rst8(esxDOS.M_ERRH)             ; the error in our ErrorHandler routine to give us a chance to
+                        ret                             ; clean up the dot cmd before exiting to BASIC.
 pend
 
-ErrorHandler            proc
-                        ld hl, Err.Break
-                        jp Return.WithCustomError
+ErrorHandler            proc                            ; If we trap any errors thrown by the ROM, we currently just
+                        ld hl, Err.Break                ; exit the dot cmd with a  "D BREAK - CONT repeats" custom
+                        jp Return.WithCustomError       ; error.
 pend
 
 ErrorProc               proc
                         if enabled ErrDebug
-                          ld a, (CRbeforeErr)
-                          or a
-                          jr z, NoCR
-                          push hl
-                          ld a, CR
-                          call Rst16
+                          ld a, (CRbeforeErr)           ; For debugging convenience, if the "Debug" UI checkbox is
+                          or a                          ; ticked in Zeus, We will print the custom error message in
+                          jr z, NoCR                    ; the top half of the screen, and stop dead with a red border.
+                          push hl                       ; This really helps see the error when debugging with the dot
+                          ld a, CR                      ; cmd invoked from autoexec.bas, as the main menu obscures any
+                          call Rst16                    ; error messages during autoexec.bas execution.
                           pop hl
 NoCR:                     call PrintRst16Error
 Stop:                     Border(2)
                           jr Stop
-                        else
-                          ld a, (CRbeforeErr)
-                          or a
-                          jr z, NoCR
-                          push hl                       ; If we want to print the error at the top of the screen,
+                        else                            ; The normal (non-debug) error routine shows the error in both
+                          ld a, (CRbeforeErr)           ; parts of the screen, and exits to BASIC.
+                          or a                          ; Special CR routine, to handle the case when we print
+                          jr z, NoCR                    ; backspaces with no CR during the flash progress loop.
+                          push hl
                           ld a, CR
                           call Rst16
                           pop hl
-NoCR:                     push hl
+NoCR:                     push hl                       ; If we want to print the error at the top of the screen,
                           call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
                           pop hl                        ; then uncomment this code.
                           jp Return.WithCustomError     ; Straight to the error handing exit routine
@@ -69,12 +69,12 @@ Bank4 equ $+1:          ld a, $FF                       ; Default value of $FF m
 pend
 
 RestoreSpeed            proc
-Saved equ $+3:          nextreg Reg.CPUSpeed, SMC       ; Restore speed
+Saved equ $+3:          nextreg Reg.CPUSpeed, SMC       ; Restore speed to what it originally was at dot cmd entry
                         ret
 pend
 
-Return                  proc
-ToBasic:
+Return                  proc                            ; This routine restores everything preserved at the start of
+ToBasic:                                                ; the dot cmd, for success and errors, then returns to BASIC.
                         call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
@@ -114,38 +114,53 @@ Deallocate8KBank        proc                            ; Takes bank to dealloca
                         jr Allocate8KBank.Internal      ; Rest of deallocate is the same as the allocate routine
 pend
 
-Wait5Frames             proc
-                        WaitFrames(5)
+Wait5Frames             proc                            ; Convenience routines for different lengths of wait.
+                        WaitFrames(5)                   ; Each frame is 1/50th of a second.
                         ret
 pend
 
-Wait80Frames            proc
-                        WaitFrames(80)
+Wait30Frames            proc                            ; Convenience routines for different lengths of wait.
+                        WaitFrames(30)                  ; Each frame is 1/50th of a second.
                         ret
 pend
 
-Wait30Frames            proc
-                        WaitFrames(30)
+Wait80Frames            proc                            ; Convenience routines for different lengths of wait.
+                        WaitFrames(80)                  ; Each frame is 1/50th of a second.
                         ret
 pend
 
-SaveReadTimeoutProc     proc                            ; a = FramesToWait
-                        push af
-                        ld a, (ESPReadIntoBuffer.WaitNFrames)
-                        ld (TimeoutBackup), a
+WaitFramesProc          proc
+                        di
+                        ld (SavedStack), sp             ; Save stack
+                        ld sp, $8000                    ; Put stack in upper 48K so FRAMES gets updated (this is a
+                        ei                              ; peculiarity of mode 1 interrupts inside dot commands).
+Loop:                   halt                            ; Note that we already have a bank allocated by IDE_BANK
+                        dec bc                          ; at $8000, so we're not corrupting BASIC by doing this.
+                        ld a, b
+                        or c
+                        jr nz, Loop                     ; Wait for BC frames
+                        di                              ; In this dot cmd interrupts are off unless waiting or printing
+SavedStack equ $+1:     ld sp, SMC                      ; Restore stack
+                        ret
+pend
+
+SaveReadTimeoutProc     proc                            ; a = FramesToWait. Since we only really need to call
+                        push af                         ; ESPReadIntoBuffer with longer timeouts once, it's easier
+                        ld a, (ESPReadIntoBuffer.WaitNFrames) ; to self-modify the timeout routine when needed,
+                        ld (TimeoutBackup), a           ; rather than have it always take a timeout parameter.
                         pop af
 Set:                    ld (ESPReadIntoBuffer.WaitNFrames), a
                         ret
 pend
 
-RestoreReadTimeoutProc  proc
-                        ld a, (TimeoutBackup)
+RestoreReadTimeoutProc  proc                            ; Counterpart to SaveReadTimeoutProc, restores the
+                        ld a, (TimeoutBackup)           ; original timeout.
                         jr SaveReadTimeoutProc.Set
 pend
 
-WaitKey                 proc
-                        Border(6)
-                        ei
+/*WaitKey                 proc                          ; Just a debugging routine that allows me to clear
+                        Border(6)                       ; my serial logs at a certain point, before logging
+                        ei                              ; the traffic I'm interested in debugging.
 Loop1:                  xor a
                         in a, ($FE)
                         cpl
@@ -161,20 +176,5 @@ Loop2:                  xor a
                         Border(7)
                         di
                         ret
-pend
-
-WaitFramesProc          proc
-                        di
-                        ld (SavedStack), sp             ; Save stack
-                        ld sp, $8000                    ; Put stack in upper 16K so FRAMES gets update
-                        ei
-Loop:                   halt
-                        dec bc
-                        ld a, b
-                        or c
-                        jr nz, Loop
-                        di
-SavedStack equ $+1:     ld sp, SMC
-                        ret
-pend
+pend*/
 
