@@ -178,53 +178,6 @@ Loop2:                  xor a
                         ret
 pend*/
 
-/*CopyArgs              proc                            ; Copies args from BASIC to safe buffer inside dot command,
-                        xor a                           ; using CR or colon as a terminator, unless they appear inside
-                        ld (IsInsideQuote), a           ; double quotes.
-                        ld hl, (SavedArgs)
-                        ld a, h
-                        or l
-                        jr z, NoArgs
-                        ld de, Args
-                        ld bc, ArgsLen
-ArgsLoop:               ld a, (hl)
-                        cp '"'                          ; If we are inside quotes,
-                        jr nz, NotQuote                  ; we don't want to treat CR or colon as end of args
-                        ex af, af'
-IsInsideQuote equ $+1:  ld a, SMC                       ; Flip IsInsideQuote flag
-                        xor 1
-                        ld (IsInsideQuote), a
-                        jr z, OutsideQuote
-                        ld ix, ReadArgChar
-                        jr InsideOutside
-OutsideQuote:           ld ix, CheckCRColon
-InsideOutside:          ld (NotQuote+1), ix
-                        jr nz, FinishedQuoteCheck       ; If inside quote, skip CR and colon check
-                        ex af, af'
-NotQuote:               jp CheckCRColon
-CheckCRColon:           cp CR
-                        jr z, ArgsEnd
-                        cp ':'
-                        jr z, ArgsEnd
-                        jr ReadArgChar
-FinishedQuoteCheck:     ex af, af'
-ReadArgChar:            ld (de), a
-                        dec bc
-                        ld a, b
-                        or c
-                        ErrorIfZero(Err.ArgsTooBig)
-                        inc hl
-                        inc de
-                        jr ArgsLoop
-ArgsEnd:                ld hl, Args
-                        ld (SavedArgs), hl              ; Save start of copied args
-                        ex de, hl
-                        or a
-                        sbc hl, de
-                        ld (SavedArgsLen), hl           ; Save length of copied args
-NoArgs:                 ret
-pend*/
-
 ; ***************************************************************************
 ; * Parse an argument from the command tail                                 *
 ; ***************************************************************************

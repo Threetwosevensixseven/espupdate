@@ -64,6 +64,7 @@ IsANext:
                         inc a
 SaveFileArg:            ld (HasFWFileName), a           ; Save whether we have a filename or now
 
+                        ld hl, (SavedArgs)              ; Start again at the first arg in case it was help
 ArgLoop:                ld de, ArgBuffer                ; Parse remaining args in a loop
                         call GetSizedArgProc
                         jr nc, NoMoreArgs
