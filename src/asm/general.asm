@@ -78,10 +78,10 @@ ToBasic:                                                ; the dot cmd, for succe
                         call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
-                        xor a
 Stack                   ld sp, SMC                      ; Unwind stack to original point
 Stack1                  equ Stack+1
 IY1 equ $+1:            ld iy, SMC                      ; Restore IY
+                        ld a, 0
                         ei
                         ret                             ; Return to BASIC
 WithCustomError:
