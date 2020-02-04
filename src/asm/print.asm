@@ -58,6 +58,7 @@ Err                     proc
   NoMem:                db "4 Out of memor",        'y'|128
   NotNext:              db "Spectrum Next require", 'd'|128
   NotOS:                db "NextZXOS require",      'd'|128
+  CoreMin:              db "Core 3.00.07 require",  'd'|128
   ArgsTooBig:           db "Arguments too lon",     'g'|128
   ArgsBad:              db "Invalid Argument",      's'|128
   NotNB:                db "NextBASIC require",     'd'|128

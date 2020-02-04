@@ -58,6 +58,14 @@ IsANext:
                         ld (RestoreSpeed.Saved), a      ; Save current speed so it can be restored on exit.
                         nextreg Reg.CPUSpeed, %11       ; Set current desired speed to 28MHz.
 
+                        NextRegRead(Reg.CoreMSB)        ; Core Major/Minor version
+                        ld h, a
+                        NextRegRead(Reg.CoreLSB)        ; Core Sub version
+                        ld l, a                         ; HL = version, should be >= $3007
+                        ld de, CoreMinVersion
+                        CpHL(de)
+                        ErrorIfCarry(Err.CoreMin)       ; Raise minimum core error if < 3.00.07
+
                         GetSizedArg(SavedArgs, FWFileName) ; Parse filename from first arg
                         ld a, 0
                         jr nc, SaveFileArg

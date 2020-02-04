@@ -1,6 +1,7 @@
 ; constants.asm
 
 ; Application
+CoreMinVersion          equ $3007                       ; 3.00.07 has ESP control pins
 ResetWait               equ 5
 DisableScroll           equ false
 TestWorkflow            equ false
@@ -49,8 +50,10 @@ pend
 ; Registers
 Reg                     proc
   MachineID             equ $00
+  CoreMSB               equ $01
   Peripheral2           equ $06
   CPUSpeed              equ $07
+  CoreLSB               equ $0E
   VideoTiming           equ $11
 pend
 
