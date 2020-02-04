@@ -115,21 +115,27 @@ pend
 
 ESPSendBytesEscProc     proc                            ; hl = Buffer, de = Length
                         ld bc, UART_GetStatus           ; UART Tx port also gives the UART status when read
-WaitNotBusy:            in a, (c)                       ; Read the UART status
+WaitNotBusy1:           in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
-                        jr nz, WaitNotBusy              ; If busy, keep trying until not busy
+                        jr nz, WaitNotBusy1             ; If busy, keep trying until not busy
                         ld a, (hl)                      ; Otherwise read the next byte of the text to be sent
 CheckC0:
                         cp $C0
                         jr nz, CheckDB
-                        ld a, $DB                       ; Escape $C0 by replacing with $DB $DC
+                        ld a, $DB                       ; Escape $C0 by replacing with $DB $DC without changing hl or de
                         out (c), a
+WaitNotBusy2:           in a, (c)                       ; Read the UART status
+                        and UART_mTX_BUSY               ; and check the busy bit (bit 1)
+                        jr nz, WaitNotBusy2             ; If busy, keep trying until not busy
                         ld a, $DC
                         jr NoEsc
 CheckDB:
                         cp $DB
                         jr nz, NoEsc
-                        out (c), a                      ; Escape $DB by replacing with $DB $DD
+                        out (c), a                      ; Escape $DB by replacing with $DB $DD without changing hl or de
+WaitNotBusy3:           in a, (c)                       ; Read the UART status
+                        and UART_mTX_BUSY               ; and check the busy bit (bit 1)
+                        jr nz, WaitNotBusy3             ; If busy, keep trying until not busy
                         ld a, $DD
 NoEsc:
                         out (c), a                      ; and send it to the UART TX port
@@ -137,7 +143,7 @@ NoEsc:
                         dec de                          ; Check whether there are any more bytes of text
                         ld a, d
                         or e
-                        jr nz, WaitNotBusy              ; If there are, read and repeat
+                        jr nz, WaitNotBusy1             ; If there are, read and repeat
                         ret                             ; Otherwise return
 pend
 
