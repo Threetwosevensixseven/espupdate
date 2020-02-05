@@ -5,6 +5,10 @@ SavedArgs:              dw 0
 SavedArgsLen            dw 0
 SavedStackPrint:        dw $0000
 IsNext:                 ds 0
+ArgBuffer:              ds 256
+WantsHelp:              ds 1
+Progress:               ds 16                   ; 15 chars with terminating null
+CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
 
 ; UART
 Prescaler:              ds 3
@@ -36,17 +40,16 @@ FWCompLenStr:           ds 11
 HeaderBlockSize:        ds 2                    ; MSB is always zero
 BlockCount:             ds 2
 BlockHeaderStart:       ds 2
-FilePointer:            ds 4
-Progress:               ds 16                   ; 15 chars with terminating null
-CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
 TimeoutBackup:          ds 1
-FWFileName:             ds 256                  ; Filename buffer to load firmware from
-HasFWFileName:          ds 1
-ArgBuffer:              ds 256
-WantsHelp:              ds 1
+InProgMode:             ds 1
 
+; Features
 Features                proc
   Is8285:               ds 1
   EmbFlash:             ds 1
 pend
+
+; Files
+FWFileName:             ds 256                  ; Filename buffer to load firmware from
+HasFWFileName:          ds 1
 

@@ -8,6 +8,11 @@ TestWorkflow            equ false
 FastUART                equ false
 WriteDelay              equ 80
 Left5                   equ chr(8)+chr(8)+chr(8)+chr(8)+chr(8)
+                        if enabled AppendFW
+VerSuffix:                equ "e"
+                        else
+VerSuffix:                equ "n"
+                        endif
 
 ; ESP
 ESP_OTP_MAC0            equ 0x3ff00050

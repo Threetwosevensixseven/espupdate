@@ -1,11 +1,13 @@
 ; msg.asm
 
 Msg                     proc
-  Startup:              db "ESP UPDATE TOOL v1.", BuildNoValue
+  Startup:              db "ESP UPDATE TOOL v1.", BuildNoValue//, VerSuffix
                         //db " (", BuildTimeSecsValue, ")"
                         db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   ReadFW:               db "Reading firmware...", CR, 0
+  ExternalFW:           db "This ESPUPDATE version does not have embedded firmware. "
+                        db "Pick an .ESP file from the file browser in NextZXOS instead.", CR, 0
   FWVer:                db "Updating firmware to v", 0
   SetBaud1:             db "Using ", 0
   b115200:              db "115200", 0
@@ -36,10 +38,18 @@ Msg                     proc
   Finalize:             db "Finalising new firmware...", CR, 0
   ResetESP:             db "Resetting ESP...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
-                        db "espupdate [-h]", CR
-                        db "Update ESP with default firmware", CR, CR
-                        db "espupdate FILENAME [-h]", CR
-                        db "Update ESP with the firmware in a file", CR, CR
+                        if enabled AppendFW
+                          db "espupdate [-h]", CR
+                          db "Update ESP with default firmware", CR, CR
+                          db "espupdate FILENAME [-h]", CR
+                          db "Update ESP with the firmware in an external file", CR, CR
+                        else
+                          db "espupdate FILENAME [-h]", CR
+                          db "Update ESP with the firmware in an external file", CR, CR
+                          db "espupdate -h", CR
+                          db "Display this help", CR, CR
+                        endif
+
                         db "OPTIONS", CR, CR
                         db "  FILENAME", CR
                         db "  A file containing ESP firmware  in the NXESP format", CR
@@ -71,6 +81,7 @@ Err                     proc
   FlashUpd:             db "Flash param error ",    '2'|128
   ReadFW:               db "Error reading firmwar", 'e'|128
   FWMissing:            db "Firmware missin",       'g'|128
+  FWNeeded:             db "Firmware neede",        'd'|128
   NotFW:                db "Not a firmware fil",    'e'|128
   BadFW:                db "Firmware is bad forma", 't'|128
   BaudChg:              db "Error changing bau",    'd'|128

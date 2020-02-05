@@ -7,7 +7,7 @@ CSpect optionbool 15, -10, "CSpect", false              ; Option in Zeus GUI to 
 RealESP optionbool 80, -10, "Real ESP", false           ; Launch CSpect with physical ESP in USB adaptor
 UploadNext optionbool 160, -10, "Next", false           ; Copy dot command to Next FlashAir card
 ErrDebug optionbool 212, -10, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
-AppendFW optionbool 270, -10, "AppendFW", true          ; Pad dot command and append the NXESP-formatted firmware
+AppendFW optionbool 270, -10, "AppendFW", false         ; Pad dot command and append the NXESP-formatted firmware
 
 org $2000                                               ; Dot commands always start at $2000
 Start:
@@ -82,7 +82,7 @@ NoMoreArgs:
                         ld a, (WantsHelp)
                         or a
                         jr z, NoHelp
-                        PrintMsg(Msg.Help)
+DoHelp:                 PrintMsg(Msg.Help)
                         if (ErrDebug)
                           Freeze(1,2)
                         else
@@ -139,8 +139,16 @@ ReadFW:                 ld hl, $C000                    ; Start loading at $C000
                         ErrorIfCarry(Err.ReadFW)
                         ld a, b                         ; If we read zero bytes, either FW wasn't appended to
                         or c                            ; the dot cmd, or the external FW file was zero length.
-                        ErrorIfZero(Err.FWMissing)
-                        cp 7                            ; Check we read 7 bytes
+                        jp nz, FWFound
+
+                        if enabled AppendFW
+                          ErrorAlways(Err.FWMissing)
+                        else
+                          PrintMsg(Msg.ExternalFW)
+                          ErrorAlways(Err.FWMissing)
+                        endif
+
+FWFound:                cp 7                            ; Check we read 7 bytes
                         jp nz, BadFormat
                         ld hl, $C000                    ; Check magic bytes NXESP
                         ld a, (hl)
@@ -271,7 +279,8 @@ EnableProgMode:
                         pop af
                         and %1111 1110                  ; Clear bit 0
                         nextreg 168, a                  ; to disable GPIO0
-                        push af
+                        ld a, 1
+                        ld (InProgMode), a              ; Signal that ESP should be reset on exit
 DoSync:
                         PrintMsg(Msg.SendSync)
                         call ESPFlush                   ; Clear the UART buffer first
@@ -649,7 +658,7 @@ BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block 
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
 
-                        call Wait5Frames                ; Pause to allow decompression
+                        call Wait100Frames              ; Pause to allow decompression
 
                         ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)
@@ -679,7 +688,7 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ; res = esp.flash_md5sum(address, uncsize)
                         ; res = esp.flash_md5sum(0, 0x00100000)
                         ; self.ESP_SPI_FLASH_MD5, struct.pack('<IIII', addr, size, 0, 0)
-                        SetReadTimeout(100)
+                        SetReadTimeout(255)
                         DisableReadValidate()
                         ESPSendCmdWithData(ESP_SPI_FLASH_MD5, SLIP.Md5Block, SLIP.Md5BlockLen, Err.BadMd5)
                         RestoreReadTimeout()
@@ -716,12 +725,8 @@ HashVerifyLoop:         ld a, (de)
                         ; self.check_command("leave compressed flash mode", self.ESP_FLASH_DEFL_END, pkt)
                         ESPSendCmdWithData(ESP_FLASH_DEFL_END, SLIP.ExitBlock, SLIP.ExitBlockLen, Err.ExitWrite)
 
-                        ; Reset ESP with a normal (non-programming) reset
+                        ; ESP will always be reset on exit, whether error or success
                         PrintMsg(Msg.ResetESP)          ; "Resetting ESP..."
-                        nextreg 2, 128                  ; Set RST low
-                        call Wait5Frames                ; Hold in reset
-                        nextreg 2, 0                    ; Set RST high
-
 EndOfCommand:
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached

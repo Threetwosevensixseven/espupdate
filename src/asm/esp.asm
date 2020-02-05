@@ -476,3 +476,13 @@ BaudTable equ $+1:      ld hl, SMC                      ; Restore BaudTable
                         ret
 pend
 
+ResetESP                proc                            ; Reset ESP with a normal (non-programming) reset
+                        ld a, (InProgMode)
+                        or a
+                        jr z, NoReset
+                        nextreg 2, 128                  ; Set RST low
+                        call Wait5Frames                ; Hold in reset
+                        nextreg 2, 0                    ; Set RST high
+NoReset:                ret
+pend
+
