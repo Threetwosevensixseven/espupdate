@@ -7,6 +7,7 @@ SavedStackPrint:        dw $0000
 IsNext:                 ds 0
 ArgBuffer:              ds 256
 WantsHelp:              ds 1
+Force:                  ds 1
 Progress:               ds 16                   ; 15 chars with terminating null
 CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
 

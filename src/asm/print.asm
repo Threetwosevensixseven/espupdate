@@ -24,6 +24,8 @@ Msg                     proc
   Success:              db "ESP updated successfully!", CR, 0
   ErrCd:                db "Error code: ", 0
   MAC2:                 db "MAC: ", 0
+  Confirm:              db "Are you sure? (y/n) ", 0
+  Abort:                db "Not updating ESP", CR, 0
   Stub1:                db "Uploading stub...", CR, 0
   //Stub2:                db "Running stub...", CR, 0
   Stub3:                db "Stub running", CR, 0
@@ -39,12 +41,12 @@ Msg                     proc
   ResetESP:             db "Resetting ESP...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
                         if enabled AppendFW
-                          db "espupdate [-h]", CR
+                          db "espupdate [-y] [-h]", CR
                           db "Update ESP with default firmware", CR, CR
-                          db "espupdate FILENAME [-h]", CR
+                          db "espupdate FILENAME [-y] [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                         else
-                          db "espupdate FILENAME [-h]", CR
+                          db "espupdate FILENAME [-y] [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                           db "espupdate -h", CR
                           db "Display this help", CR, CR
@@ -55,6 +57,8 @@ Msg                     proc
                         db "  A file containing ESP firmware  in the NXESP format", CR
                         db "  For more info, see the FAQ at:", CR
                         db "  tinyurl.com/espfaq", CR, CR
+                        db "  -y", CR
+                        db "  Skip \"Are you sure?\"", CR, CR
                         db "  -h", CR
                         db "  Display this help", CR, CR
                         db "ESP UPDATE TOOL v1.", BuildNoValue, CR

@@ -165,7 +165,7 @@ RestoreReadTimeoutProc  proc                            ; Counterpart to SaveRea
                         jr SaveReadTimeoutProc.Set
 pend
 
-/*WaitKey                 proc                          ; Just a debugging routine that allows me to clear
+/*WaitKey                 proc                            ; Just a debugging routine that allows me to clear
                         Border(6)                       ; my serial logs at a certain point, before logging
                         ei                              ; the traffic I'm interested in debugging.
 Loop1:                  xor a
@@ -184,6 +184,37 @@ Loop2:                  xor a
                         di
                         ret
 pend*/
+
+WaitKeyYN               proc                            ; Returns carry set if no, carry clear if yes
+                        ei                              ; Also prints Y or N followed by CR
+Loop1:                  xor a
+                        in a, ($FE)
+                        cpl
+                        and 15
+                        halt
+                        jr nz, Loop1
+Loop2:                  ld bc, zeuskeyaddr("Y")
+                        in a, (c)
+                        and zeuskeymask("Y")
+                        jr z, Yes
+                        ld b, high zeuskeyaddr("N")
+                        in a, (c)
+                        and zeuskeymask("N")
+                        jr nz, Loop2
+No:                     scf
+                        push af
+                        ld a, 'N'
+                        jr Print
+Yes:                    xor a
+                        push af
+                        ld a, 'Y'
+Print:                  call Rst16
+                        ld a, CR
+                        call Rst16
+                        pop af
+                        di
+                        ret
+pend
 
 ; ***************************************************************************
 ; * Parse an argument from the command tail                                 *
@@ -257,7 +288,6 @@ BadSize:                pop af                          ; discard return address
 pend
 
 ParseHelp               proc
-                        ret nc                          ; Return immediately if no arg found
                         ld a, b
                         or c
                         cp 2
@@ -273,6 +303,26 @@ ParseHelp               proc
                         jr nz, Return
                         ld a, 1
                         ld (WantsHelp), a
+Return:                 pop hl
+                        ret
+pend
+
+ParseForce              proc
+                        ld a, b
+                        or c
+                        cp 2
+                        ret nz
+                        push hl
+                        ld hl, ArgBuffer
+                        ld a, (hl)
+                        cp '-'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp 'y'
+                        jr nz, Return
+                        ld a, 1
+                        ld (Force), a
 Return:                 pop hl
                         ret
 pend

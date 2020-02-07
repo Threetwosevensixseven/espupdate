@@ -1,6 +1,21 @@
-    ; main.asm
+; main.asm
+
+;  Copyright 2020 Robin Verhagen-Guest
+;
+; Licensed under the Apache License, Version 2.0 (the "License");
+; you may not use this file except in compliance with the License.
+; You may obtain a copy of the License at
+;
+;     http://www.apache.org/licenses/LICENSE-2.0
+;
+; Unless required by applicable law or agreed to in writing, software
+; distributed under the License is distributed on an "AS IS" BASIS,
+; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+; See the License for the specific language governing permissions and
+; limitations under the License.
                                                         ; Assembles with regular version of Zeus (not Next version),
-zeusemulate             "48K", "RAW", "NOROM"           ; because that makes it easier to assemble dot commands
+zeusemulate             "Next", "RAW", "NOROM"          ; because that makes it easier to assemble dot commandszxnextmap -1,DotCommand8KBank,-1,-1,-1,-1,-1,-1         ; Assemble into Next RAM bank but displace back down to $2000
+zxnextmap -1,DotBank1,-1,-1,DotBank2,DotBank3,-1,-1     ; Assemble into Next RAM bank but displace back down to $2000
 zoSupportStringEscapes  = true;                         ; Download Zeus.exe from http://www.desdes.com/products/oldfiles/
 optionsize 10
 CSpect optionbool 15, -10, "CSpect", false              ; Option in Zeus GUI to launch CSpect
@@ -67,16 +82,24 @@ IsANext:
                         ErrorIfCarry(Err.CoreMin)       ; Raise minimum core error if < 3.00.07
 
                         GetSizedArg(SavedArgs, FWFileName) ; Parse filename from first arg
-                        ld a, 0
+                        jr nc, ArgNotFile                ; No arg, not a file
+                        ld hl, 5
+                        CpHL(bc)                        ; Filenames >=5 chars are legit
+                        jr c, ArgIsFile
+                        ld a, (FWFileName)
+                        cp '-'                          ; Filenames <5 chars starting with "-" are switches
+                        jr nz, ArgIsFile
+ArgNotFile:             xor a
                         jr nc, SaveFileArg
-                        inc a
-SaveFileArg:            ld (HasFWFileName), a           ; Save whether we have a filename or now
+ArgIsFile:              ld a, 1
+SaveFileArg:            ld (HasFWFileName), a           ; Save whether we have a filename or not
 
                         ld hl, (SavedArgs)              ; Start again at the first arg in case it was help
 ArgLoop:                ld de, ArgBuffer                ; Parse remaining args in a loop
                         call GetSizedArgProc
                         jr nc, NoMoreArgs
                         call ParseHelp
+                        call ParseForce
                         jr ArgLoop
 NoMoreArgs:
                         ld a, (WantsHelp)
@@ -243,9 +266,19 @@ ReadMoreHeader:         inc hl
 FWReadFinished:         PrintMsg(Msg.FWVer)
                         PrintMsg(FWVersion)
                         PrintMsg(Msg.EOL)
+
+                        ld a, (Force)
+                        or a
+                        jr nz, SetUARTStdSpeed
+                        PrintMsg(Msg.Confirm)
+                        call WaitKeyYN
+                        jr nc, SetUARTStdSpeed
+                        PrintMsg(Msg.Abort)
+                        jp EndOfCommand
 SetUARTStdSpeed:
                         SetUARTBaud(Baud.b115200, Msg.b115200)
 EnableProgMode:
+
                         PrintMsg(Msg.ESPProg1)          ; "Setting ESP programming mode..."
 
                         //PrintMsg(Msg.ESPProg3)        ; "Setting RST low"
@@ -727,6 +760,7 @@ HashVerifyLoop:         ld a, (de)
 
                         ; ESP will always be reset on exit, whether error or success
                         PrintMsg(Msg.ResetESP)          ; "Resetting ESP..."
+                        PrintMsg(Msg.Success)
 EndOfCommand:
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached
@@ -736,7 +770,6 @@ EndOfCommand:
                         else
                           ; This is the official "success" exit point of the program which restores
                           ; all the settings and exits to BASIC cleanly.
-                          PrintMsg(Msg.Success)
                           jp Return.ToBasic
                         endif
 
@@ -759,9 +792,7 @@ zeusprinthex "Lower code: ", LowerCodeStart, LowerCodeLen
 zeusprinthex "Upper code: ", UpperCodeStart, UpperCodeLen
 zeusprinthex "Cmd size:   ", Length
 
-if zeusver >= 74
-  zeuserror "Does not run on Zeus v4.00 (TEST ONLY) or above, Get v3.991 available at http://www.desdes.com/products/oldfiles/zeus.exe"
-endif
+zeusassert zeusver<=75, "Upgrade to Zeus v4.00 (TEST ONLY) or above, available at http://www.desdes.com/products/oldfiles/zeustest.exe"
 
 if (LowerCodeLen > $2000)
   zeuserror "DOT command (lower code) is too large to assemble!"
@@ -770,7 +801,7 @@ if (UpperCodeLen > $4000)
   zeuserror "DOT command (upper code) is too large to assemble!"
 endif
 
-output_bin "..\\..\\dot\\ESPUPDATE", Start, Length              ; Binary for project, and for CSpect image.
+output_bin "..\\..\\dot\\ESPUPDATE", Start, Length ; Binary for project, and for CSpect image.
 
 BuildArgs = "";
 if enabled CSpect
@@ -783,5 +814,5 @@ if enabled AppendFW
   BuildArgs = BuildArgs + "-a "
 endif
 
-zeusinvoke "..\\..\\build\\builddot.bat " + BuildArgs ; Run batch file with args
+zeusinvoke "..\\..\\build\\builddot.bat " + BuildArgs, "", false ; Run batch file with args
 

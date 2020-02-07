@@ -2,6 +2,9 @@
 
 ; Application
 CoreMinVersion          equ $3007                       ; 3.00.07 has ESP control pins
+DotBank1:               equ 30
+DotBank2:               equ 31
+DotBank3:               equ 32
 ResetWait               equ 5
 DisableScroll           equ false
 TestWorkflow            equ false

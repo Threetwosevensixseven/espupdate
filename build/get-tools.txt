@@ -28,4 +28,4 @@ download-tool zlib64.dll
 download-tool hdfmonkey.exe
 download-tool pskill.exe
 download-tool ZXVersion.exe
-download-tool zeus.exe http://www.desdes.com/products/oldfiles/
+download-tool zeustest.exe http://www.desdes.com/products/oldfiles/
