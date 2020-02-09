@@ -37,6 +37,8 @@ Msg                     proc
   Written1:             db "Written ", 0
   Written2:             db " bytes to flash  ", CR, 0
   GoodMd5:              db "MD5 hash verified", CR, 0
+  HashExp:              db "Expecting MD5 hash:", CR, 0
+  HashGot:              db CR, "ESP reports MD5 hash:", CR, 0
   Finalize:             db "Finalising new firmware...", CR, 0
   ResetESP:             db "Resetting ESP...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR

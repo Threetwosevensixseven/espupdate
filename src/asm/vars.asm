@@ -35,6 +35,7 @@ FlashFreq:              ds 1
 FlashParams:            ds 2
 FWVersion:              ds 11                   ; 10 chars with terminating null
 FWMD5:                  ds 16                   ; 16 bytes (binary not hex string)
+GotMD5:                 ds 16                   ; MDS we got back from the ESP
 DataBlockSize:          ds 2
 FWCompLen:              ds 4
 FWCompLenStr:           ds 11

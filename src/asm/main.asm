@@ -730,15 +730,31 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         ; Compare the 32 returned bytes in the buffer against the precalculated MD5 hash
                         ; we read from the firmware extended header.
                         ld hl, Buffer+9                 ; Received hash start address, in buffer.
+                        ld de, GotMD5                   ; Copy to a safe place so we can print later
+                        ld bc, 16                       ; Size of hash, MD5 is always 16 bytes (not hex string)
+                        ldir                            ; Do the copy
+
+                        ld hl, GotMD5                   ; Received hash start address, in safe place.
                         ld de, FWMD5                    ; Precalculated hash start address, in vars.
                         ld b, 16                        ; Size of hash, MD5 is always 16 bytes (not hex string)
+
 HashVerifyLoop:         ld a, (de)
                         cp (hl)
                         inc hl                          ; 16bit inc doesn't affect flags
                         inc de
-                        ErrorIfNotZero(Err.BadMd5)      ; If any byte differs, raise "MD5 hash failure" error.
+                        jr nz, HashNotVerified
                         djnz HashVerifyLoop             ; Repeat for all 16 bytes of MDS hash
-                        PrintMsg(Msg.GoodMd5)           ; "Hash of data verified"
+                        jr HashVerified
+
+HashNotVerified:
+                        PrintMsg(Msg.HashExp)           ; "Expecting hash:"
+                        PrintBufferHex(FWMD5, 16)
+                        PrintMsg(Msg.HashGot)           ; "Actual hash:"
+                        PrintBufferHex(GotMD5, 16)
+                        PrintMsg(Msg.EOL)
+                        ErrorAlways(Err.BadMd5)      ; If any byte differs, raise "MD5 hash failure" error.
+
+HashVerified:           PrintMsg(Msg.GoodMd5)           ; "Hash of data verified"
 
                         ; Send an ESP_FLASH_BEGIN command to begin the final sequence. esptool.py says:
                         ; # skip sending flash_finish to ROM loader here,

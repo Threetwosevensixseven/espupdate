@@ -7,8 +7,6 @@ align $8000                     ; This section of the file is padded to start 8K
 disp -$4000
 UpperCodeStart:                 ; after allocating and paging two new 8K banks from NextZXOS.
 
-zeusprinthex $
-
 ESP8266StubText:
 import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_text.bin"
 ESP8266StubTextLen      equ $-1
