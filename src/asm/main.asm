@@ -607,7 +607,7 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ;   status_mask = 0x0000ffff
                         ; chk     = 0
                         ; timeout = 3
-                        //ESPSendCmdWithData(ESP_SPI_SET_PARAMS, SLIP.CfgFlash, SLIP.CfgFlashLen, Err.FlashSet)
+                        ESPSendCmdWithData(ESP_SPI_SET_PARAMS, SLIP.CfgFlash, SLIP.CfgFlashLen, Err.FlashSet)
 
                         ; operation_func(esp, args)
                         ; write_flash(esp, args)
