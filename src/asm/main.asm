@@ -689,9 +689,7 @@ FlashLoop:
                         ErrorIfCarry(Err.ReadFW)
 BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block size (DataLen)
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
-                        SetReadTimeout(255)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
-                        RestoreReadTimeout()
 
                         call Wait100Frames              ; Pause to allow decompression
 

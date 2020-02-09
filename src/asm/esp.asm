@@ -371,9 +371,13 @@ ESPSendCmdWithDataProc  proc                            ; a = Op, de = DataAddr,
                         push de                         ; Save DataAddr till we're ready to send data
                         call ESPWaitFlushWait
 
-                        ld hl, SLIP.Header              ; This is the send buffer, freshly patched
-                        ld de, SLIP.HeaderLen           ; Header send buffer is always 9 bytes long
-                        call ESPSendBytesProc           ; Send all 9 bytes of the header (doesn't signal any error)
+                        ld hl, SLIP.Footer              ; First byte of SLIP header mustn't be escaped
+                        ld de, SLIP.FooterLen           ; It is always 1 byte long
+                        call ESPSendBytesProc           ; Send first byte of the header (doesn't signal any error)
+
+                        ld hl, SLIP.Header+1            ; This is the remaining send buffer, freshly patched
+                        ld de, SLIP.HeaderLen-1         ; Always eight bytes, and MUST be escaped!
+                        call ESPSendBytesEscProc        ; Send all 8 bytes of the header (doesn't signal any error)
 
                         ld a, ixh                       ; if IX > $00FF then we want to treat it as an additional
                         or a                            ; 16 bytes of data to be sent at the beginning

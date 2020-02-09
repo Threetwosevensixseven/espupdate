@@ -47,3 +47,9 @@ f = open('..\\..\\diff\_image_rewritten.bin', 'w+b')
 binary_format = bytearray(stub["text"])
 f.write(binary_format)
 f.close()
+
+ESCAPING:
+=========
+$C0 is replaced by $DB $DC
+$DB is replaced by $DB $DD
+All lengths are counted for unescaped sequences

@@ -1,0 +1,10 @@
+ESPSendBytesProc
+  ESPSendBytes()
+    SyncLoop (hardcoded, doesn't need escaping)
+  ESPReadReg
+    eFuses (x2, hardcoded, doesn't need escaping)
+    MAC (x3, hardcoded, doesn't need escaping)
+  ESPSendCmdWithDataProc (x2)
+    Needs special treatment for first and last $C0
+  ESPValidateCmdProc
+    Needs special treatment for first and last $C0
