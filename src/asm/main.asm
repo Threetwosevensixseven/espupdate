@@ -33,7 +33,7 @@ Start:
 Begin:                  di                              ; We run with interrupts off apart from printing and halts
                         ld (Return.Stack1), sp          ; Save so we can always return without needing to balance stack
                         ld (Return.IY1), iy             ; Put IY safe, just in case
-                        ld sp, $4000                    ; Put stack safe inside dot comman
+                        ld sp, $4000                    ; Put stack safe inside dot command
 
                         ld (SavedArgs), hl              ; Save args for later
 
@@ -653,7 +653,7 @@ OkStub:                 PrintMsg(Msg.Stub3)
                         ; FLASH_WRITE_SIZE = 0x4000 (16K)
                         ; offset = 0
                         ; SLIP.FlashBlock was already prepopulated when we read the firmware header
-                        ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashUp)
+                        ESPSendCmdWithData(ESP_FLASH_DEFL_BEGIN, SLIP.FlashBlock, SLIP.FlashBlockLen, Err.FlashStart)
 FlashLoop:
                         PrintMsg(Msg.Upload3)           ; "Writing at 0x"
                         ld hl, (BlockHeaderStart)
@@ -689,7 +689,9 @@ FlashLoop:
                         ErrorIfCarry(Err.ReadFW)
 BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block size (DataLen)
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
+                        SetReadTimeout(255)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
+                        RestoreReadTimeout()
 
                         call Wait100Frames              ; Pause to allow decompression
 

@@ -89,6 +89,7 @@ Err                     proc
   NotFW:                db "Not a firmware fil",    'e'|128
   BadFW:                db "Firmware is bad forma", 't'|128
   BaudChg:              db "Error changing bau",    'd'|128
+  FlashStart:           db "Error initiating flas", 'h'|128
   FlashUp:              db "Error writing flas",    'h'|128
   BadMd5:               db "MD5 hash failur",       'e'|128
   Finalize:             db "Error finalizing writ", 'e'|128
