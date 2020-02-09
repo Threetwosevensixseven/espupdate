@@ -22,6 +22,8 @@ function download-tool {
 
 download-tool AppendFW.exe
 download-tool PackageFW.exe
+download-tool CombineFW.exe
+download-tool NormalizeESPLogs.exe
 download-tool zlibnet.dll
 download-tool zlib32.dll
 download-tool zlib64.dll

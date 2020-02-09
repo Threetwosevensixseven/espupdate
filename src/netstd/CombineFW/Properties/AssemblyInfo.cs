@@ -19,12 +19,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CombineFW")]
+[assembly: AssemblyTitle("ESP8266-01 in-circuit firmware updater for the ZX Spectrum Next™")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("CombineFW")]
-[assembly: AssemblyCopyright("Copyright ©  2020")]
+[assembly: AssemblyCompany("SevenFFF")]
+[assembly: AssemblyProduct("ESP Update")]
+[assembly: AssemblyCopyright("Copyright © 2020 Robin Verhagen-Guest")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
