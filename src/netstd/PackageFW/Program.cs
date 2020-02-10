@@ -26,6 +26,7 @@ namespace PackageFW
 {
     class Program
     {
+        public static bool Verbose;
         static bool Interactive;
         static string InputFile;
         static string OutputFile;
@@ -43,6 +44,9 @@ namespace PackageFW
                 Interactive = args.Any(a => a == "-i");
                 if (Interactive)
                     Console.WriteLine("Running in interactive mode");
+                Verbose = args.Any(a => a == "-v");
+                if (Verbose)
+                    Console.WriteLine("Running in verbose mode");
                 if (args.Length < 2)
                     return Help();
 
@@ -59,6 +63,14 @@ namespace PackageFW
                 catch { }
                 if (InputBytes == null || InputBytes.Length == 0)
                     Error("Cannot open input file \"" + InputFile + "\".");
+                Console.WriteLine("Input firmware: " + InputBytes.Length + " bytes");
+                if (InputBytes.Length < 0x100000) // 1MB
+                {
+                    var ib = InputBytes.ToList();
+                    Pad(ib, 0x100000);
+                    InputBytes = ib.ToArray();
+                    Console.WriteLine("Padding input firmware to: " + InputBytes.Length + " bytes");
+                }
 
                 // Output file
                 OutputFile = (args[1] ?? "").Trim();
@@ -100,7 +112,6 @@ namespace PackageFW
                 }
 
                 OutputBytes = new List<byte>();
-                Console.WriteLine("Input firmware: " + InputBytes.Length + " bytes");
                 Console.WriteLine("Converting to NXESP format...");
                 OutputBytes.AddRange(header.Serialize(InputBytes));
                 Console.WriteLine("Output file: " + OutputBytes.Count + " bytes");
@@ -133,5 +144,13 @@ namespace PackageFW
                             + "  [-v=<Version>] [-b=<BlockSize>] [-i]");
             return 1;
         }
+
+        static void Pad(List<byte> Output, int Size)
+        {
+            if (Output.Count > Size)
+                throw new InvalidDataException("Output is already larger than 0x" + Size.ToString("X2") + ".");
+            Output.AddRange(Enumerable.Repeat(Convert.ToByte(0xff), Size - Output.Count));
+        }
+
     }
 }

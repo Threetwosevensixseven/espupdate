@@ -2276,6 +2276,12 @@ def write_flash(esp, args):
             print('WARNING: File %s is empty' % argfile.name)
             continue
         image = _update_image_flash_params(esp, address, args, image)
+
+        #f = open('..\\..\\diff\_image_badmd5.bin', 'w+b')
+        #binary_format = bytearray(image)
+        #f.write(binary_format)
+        #f.close()
+
         calcmd5 = hashlib.md5(image).hexdigest()
         uncsize = len(image)
         if args.compress:

@@ -25,6 +25,7 @@ namespace PackageFW.Data
         public short Size { get; set; }
         public int Offset { get; set; }
         public byte Percent { get; set; }
+        private string Desc;
 
         public List<byte> Serialize(NxEspHeader Parent)
         {
@@ -34,14 +35,28 @@ namespace PackageFW.Data
             bs.Add(Convert.ToByte(Size / 256));
             string offset = Offset.ToString("X2").PadLeft(8, '0');
             string percent = Percent.ToString();
-            string desc = (offset + " (" + percent + "%)").PadRight(15);
-            bs.AddRange(ASCIIEncoding.ASCII.GetBytes(desc));
+            Desc = (offset + " (" + percent + "%)").PadRight(15);
+            bs.AddRange(ASCIIEncoding.ASCII.GetBytes(Desc));
             bs.Add(0); // Null termination
             if (Parent.HeaderBlockSize <= 0)
                 Parent.HeaderBlockSize = Convert.ToByte(bs.Count);
             else if (Parent.HeaderBlockSize != bs.Count)
                 throw new Exception("Header blocks cannot be different sizes.");
             return bs; // Should be always 18 bytes
+        }
+
+        public string LogVerbose(NxEspHeader Parent, short Seq)
+        {
+            var sb = new StringBuilder();
+            sb.Append(Parent.ToHex(Seq));
+            sb.Append(": ");
+            sb.Append(Parent.ToHex(Size));
+            sb.Append(" \"");
+            sb.Append(Desc);
+            sb.Append("\" ");
+            sb.Append(Parent.ToHex(Convert.ToByte(0)));
+
+            return sb.ToString();
         }
     }
 }

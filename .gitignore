@@ -25,3 +25,4 @@ obj
 /fw/ESP Firmware
 /fw/dot
 *.piz
+/fw/*.zip

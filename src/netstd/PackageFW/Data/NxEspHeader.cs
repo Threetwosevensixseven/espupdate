@@ -82,6 +82,33 @@ namespace PackageFW.Data
             bs[5] = countedLenB[0];
             bs[6] = countedLenB[1];
 
+            if (Program.Verbose)
+            {
+                Console.WriteLine(new string('=', 80));
+                Console.WriteLine("HEADER");
+                Console.WriteLine(new string('-', 80));
+                Console.WriteLine("MagicID: \"" + MAGIC + "\"");
+                Console.WriteLine("VariableHeaderLen: " + ToHex(countedLen));
+                Console.WriteLine("VersionLen: " + ToHex(Convert.ToByte(Version.Length)));
+                Console.WriteLine("Version: \"" + Version + "\"");
+                Console.WriteLine("FlashParams: " + ToHex(FlashParams));
+                Console.WriteLine("MD5HashLen: " + ToHex(Convert.ToByte(Md5.Length)));
+                Console.WriteLine("MD5Hash: " + ToHex(Md5));
+                Console.WriteLine("DataBlockLen: " + ToHex(DataBlockSize));
+                Console.WriteLine("CompressedDataLen: " + ToHex(fwCompressed.Length));
+                Console.WriteLine("BlockSectionLen: " + ToHex(HeaderBlockSize));
+                Console.WriteLine("BlockSectionCount: " + ToHex(Convert.ToInt16(Blocks.Count)));
+                Console.WriteLine("CompressedDataLenStrLen: " + ToHex(Convert.ToByte(csize.Length)));
+                Console.WriteLine("DataSectionLenStr: \"" + csize + "\"");
+                Console.WriteLine(new string('-', 80));
+                Console.WriteLine("HEADER BLOCKS");
+                Console.WriteLine(new string('-', 80));
+                short count = 0;
+                foreach (var block in Blocks)
+                    Console.WriteLine(block.LogVerbose(this, count++));
+                Console.WriteLine(new string('=', 80));
+            }
+
             // Add compressed data
             Console.WriteLine("Appending header: " + bs.Count + " bytes");
             Console.WriteLine("Appending firmware: " + fwCompressed.Length + " bytes");
@@ -109,6 +136,32 @@ namespace PackageFW.Data
                     return outputStream.ToArray();
                 }
             }
+        }
+
+        public string ToHex(int Value, bool Prefix = true)
+        {
+            return (Prefix ? "0x" : "") 
+                + Value.ToString("X2").PadLeft(8, '0');
+        }
+
+        public string ToHex(short Value, bool Prefix = true)
+        {
+            return (Prefix ? "0x" : "") 
+                + Value.ToString("X2").PadLeft(4, '0');
+        }
+
+        public string ToHex(byte Value, bool Prefix = true)
+        {
+            return (Prefix ? "0x" : "") 
+                + Value.ToString("X2").PadLeft(2, '0');
+        }
+
+        public string ToHex(byte[] Value, bool Prefix = false)
+        {
+            string rv = Prefix ? "0x" : "";
+            foreach (byte b in Value)
+                rv += b.ToString("X2").PadLeft(2, '0');
+            return rv;
         }
     }
 }
