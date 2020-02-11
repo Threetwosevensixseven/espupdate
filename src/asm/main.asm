@@ -729,6 +729,13 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
 
                         ; Compare the 32 returned bytes in the buffer against the precalculated MD5 hash
                         ; we read from the firmware extended header.
+
+                        ; TODO: response will be SLIP encoded, so $DB $CC needs unescaping to $C0,
+                        ; and $DB $DC needs escaping to $DB. So we should read 32 bytes, and unescape them
+                        ; back to 16 bytes at GotMD5 below, instead of doing the LDIR.
+                        ; I think I will actually replace this routine with a single call to ESPValidateCmdProc,
+                        ; and tweak the timeouts in that so it waits a long time.
+
                         ld hl, Buffer+9                 ; Received hash start address, in buffer.
                         ld de, GotMD5                   ; Copy to a safe place so we can print later
                         ld bc, 16                       ; Size of hash, MD5 is always 16 bytes (not hex string)

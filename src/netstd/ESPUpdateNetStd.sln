@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombineFW", "CombineFW\Comb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NormalizeESPLogs", "NormalizeESPLogs\NormalizeESPLogs.csproj", "{0D05C2D6-CFE5-48C9-AE24-6656D25B183F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSLIPEscaping", "TestSLIPEscaping\TestSLIPEscaping.csproj", "{5E6A0432-00AB-4BE3-A5D0-C20005E0F5C0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{0D05C2D6-CFE5-48C9-AE24-6656D25B183F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D05C2D6-CFE5-48C9-AE24-6656D25B183F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D05C2D6-CFE5-48C9-AE24-6656D25B183F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E6A0432-00AB-4BE3-A5D0-C20005E0F5C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E6A0432-00AB-4BE3-A5D0-C20005E0F5C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E6A0432-00AB-4BE3-A5D0-C20005E0F5C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E6A0432-00AB-4BE3-A5D0-C20005E0F5C0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

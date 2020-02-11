@@ -262,6 +262,10 @@ SavedStack equ $+1:     ld sp, SMC
 pend
 
 ESPValidateCmdProc      proc                            ; a = Op, hl = ValWordAddr
+                        ; TODO: response will be SLIP encoded, so $DB $CC needs unescaping to $C0,
+                        ; and $DB $DC needs escaping to $DB.
+                        ; This needs to happen for ALL the bytes below except for the starting
+                        ; and terminating $C0 byte!
                         ld (Opcode), a
                         ld (ValWordAddr4), hl
                         inc hl
