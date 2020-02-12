@@ -1,7 +1,7 @@
 ; constants.asm
 
 ; Application
-CoreMinVersion          equ $3007                       ; 3.00.07 has ESP control pins
+CoreMinVersion          equ $3100                       ; 3.01.00 has ESP control pins (zero day update)
 DotBank1:               equ 30
 DotBank2:               equ 31
 DotBank3:               equ 32

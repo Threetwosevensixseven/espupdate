@@ -553,7 +553,6 @@ UploadStub:
                         ESPSendDataBlock(ESP_MEM_DATA, ESP8266StubData+0x0000, 0x0300, 0, Err.StubUpload)
 
                         ; Run stub
-                        //PrintMsg(Msg.Stub2)
                         ; mem_finish(stub['entry']) ; 0x4010E004
                         ESPSendCmdWithData(ESP_MEM_END, SLIP.EntryBlock, SLIP.EntryBlockLen, Err.StubUpload)
 
@@ -577,7 +576,7 @@ UploadStub:
                         jr nz, FailStub
                         jr OkStub
 FailStub:               ErrorAlways(Err.StubRun)
-OkStub:                 PrintMsg(Msg.Stub3)
+OkStub:                 PrintMsg(Msg.Stub2)
 
                         if enabled FastUART
                           SetUARTBaud(Baud.b1152000, Msg.b1152000)

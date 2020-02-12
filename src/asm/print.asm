@@ -27,8 +27,7 @@ Msg                     proc
   Confirm:              db "Are you sure? (y/n) ", 0
   Abort:                db "Not updating ESP", CR, 0
   Stub1:                db "Uploading stub...", CR, 0
-  //Stub2:                db "Running stub...", CR, 0
-  Stub3:                db "Stub running", CR, 0
+  Stub2:                db "Stub running", CR, 0
   FlashParams:          db "Flash params set to 0x", 0
   Upload1:              db "Uploading ", 0
   Upload2:              db " bytes...", CR, 0
@@ -69,33 +68,33 @@ Msg                     proc
 pend
 
 Err                     proc
-                        ;  "<-Longest valid erro>", 'r'|128
-  Break:                db "D BREAK - CONT repeat", 's'|128
-  NoMem:                db "4 Out of memor",        'y'|128
-  NotNext:              db "Spectrum Next require", 'd'|128
-  NotOS:                db "NextZXOS require",      'd'|128
-  CoreMin:              db "Core 3.00.07 require",  'd'|128
-  ArgsTooBig:           db "Arguments too lon",     'g'|128
-  ArgsBad:              db "Invalid Argument",      's'|128
-  NotNB:                db "NextBASIC require",     'd'|128
-  NoSync:               db "Sync error or no ES",   'P'|128
-  UnknownOUI:           db "Unknown OUI erro",      'r'|128
-  BadDot:               db "Error reading dot cm",  'd'|128
-  StubUpload:           db "Error uploading stu",   'b'|128
-  StubRun:              db "Failed to start stu",   'b'|128
-  FlashSet:             db "Flash param error ",    '1'|128
-  FlashUpd:             db "Flash param error ",    '2'|128
-  ReadFW:               db "Error reading firmwar", 'e'|128
-  FWMissing:            db "Firmware missin",       'g'|128
-  FWNeeded:             db "Firmware neede",        'd'|128
-  NotFW:                db "Not a firmware fil",    'e'|128
-  BadFW:                db "Firmware is bad forma", 't'|128
-  BaudChg:              db "Error changing bau",    'd'|128
-  FlashStart:           db "Error initiating flas", 'h'|128
-  FlashUp:              db "Error writing flas",    'h'|128
-  BadMd5:               db "MD5 hash failur",       'e'|128
-  Finalize:             db "Error finalizing writ", 'e'|128
-  ExitWrite:            db "Error exiting writ",    'e'|128
+                        ;    "<-Longest valid error>" ;
+  Break:                dbtb "D BREAK - CONT repeats" ;
+  NoMem:                dbtb "4 Out of memory"        ;
+  NotNext:              dbtb "Spectrum Next required" ;
+  NotOS:                dbtb "NextZXOS required"      ;
+  CoreMin:              dbtb "Core 3.01.00 required"  ;
+  ArgsTooBig:           dbtb "Arguments too long"     ;
+  ArgsBad:              dbtb "Invalid Arguments"      ;
+  NotNB:                dbtb "NextBASIC required"     ;
+  NoSync:               dbtb "Sync error or no ESP"   ;
+  UnknownOUI:           dbtb "Unknown OUI error"      ;
+  BadDot:               dbtb "Error reading dot cmd"  ;
+  StubUpload:           dbtb "Error uploading stub"   ;
+  StubRun:              dbtb "Failed to start stub"   ;
+  FlashSet:             dbtb "Flash param error 1"    ;
+  FlashUpd:             dbtb "Flash param error 2"    ;
+  ReadFW:               dbtb "Error reading firmware" ;
+  FWMissing:            dbtb "Firmware missing"       ;
+  FWNeeded:             dbtb "Firmware needed"        ;
+  NotFW:                dbtb "Not a firmware file"    ;
+  BadFW:                dbtb "Firmware is bad format" ;
+  BaudChg:              dbtb "Error changing baud"    ;
+  FlashStart:           dbtb "Error initiating flash" ;
+  FlashUp:              dbtb "Error writing flash"    ;
+  BadMd5:               dbtb "MD5 hash failure"       ;
+  Finalize:             dbtb "Error finalizing write" ;
+  ExitWrite:            dbtb "Error exiting write"    ;
 pend
 
 PrintRst16              proc
