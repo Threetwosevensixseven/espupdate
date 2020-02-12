@@ -120,7 +120,7 @@ SafePrintStart          macro()                         ; Included at the start 
                         push af
                         ld a, (IsNext)
                         or a
-                        jr nz, NotNext
+                        jr z, NotNext
                         nextreg $54, 4                  ; Restore what BASIC is expecting to find at $8000 (16K bank 2)
                         nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
                         nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
@@ -148,7 +148,7 @@ NoBank3:                ld a, (DeallocateBanks.Bank4)   ; Read bank to restore a
                         jr z, NoBank4                   ; so don't restore,
                         nextreg $57, a                  ; otherwise restore original bank at $E000.
 NoBank4:
-SavedA equ $+1:         ld a, SMC                       ; Restore A so it's completely free of side-effects
+                        ld a, [SavedA]SMC               ; Restore A so it's completely free of side-effects
                         ld sp, (SavedStackPrint)        ; Restore stack to what it was before SafePrintStart()
 mend
 
