@@ -117,7 +117,7 @@ SafePrintStart          macro()                         ; Included at the start 
                         di                              ; Interrupts off while paging. Subsequent code will enable them.
                         ld (SavedStackPrint), sp        ; Save current stack to be restored in SafePrintEnd()
                         ld sp, (Return.Stack1)          ; Set stack back to what BASIC had at entry, so safe for rst 16
-                        push af
+                        ld (SavedA), a
                         ld a, (IsNext)
                         or a
                         jr z, NotNext
@@ -125,7 +125,7 @@ SafePrintStart          macro()                         ; Included at the start 
                         nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
                         nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
                         nextreg $57, 1                  ; Restore what BASIC is expecting to find at $E000 (16K bank 0)
-NotNext:                pop af
+NotNext:                ld a, [SavedA]SMC
 mend
 
 SafePrintEnd            macro()                         ; Included at the end of every routine which calls rst 16
