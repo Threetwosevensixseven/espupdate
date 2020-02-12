@@ -119,8 +119,7 @@ WaitNotBusy1:           in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
                         jr nz, WaitNotBusy1             ; If busy, keep trying until not busy
                         ld a, (hl)                      ; Otherwise read the next byte of the text to be sent
-CheckC0:
-                        cp $C0
+CheckC0:                cp $C0
                         jr nz, CheckDB
                         ld a, $DB                       ; Escape $C0 by replacing with $DB $DC without changing hl or de
                         out (c), a
@@ -129,16 +128,14 @@ WaitNotBusy2:           in a, (c)                       ; Read the UART status
                         jr nz, WaitNotBusy2             ; If busy, keep trying until not busy
                         ld a, $DC
                         jr NoEsc
-CheckDB:
-                        cp $DB
+CheckDB:                cp $DB
                         jr nz, NoEsc
                         out (c), a                      ; Escape $DB by replacing with $DB $DD without changing hl or de
 WaitNotBusy3:           in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
                         jr nz, WaitNotBusy3             ; If busy, keep trying until not busy
                         ld a, $DD
-NoEsc:
-                        out (c), a                      ; and send it to the UART TX port
+NoEsc:                  out (c), a                      ; and send it to the UART TX port
                         inc hl                          ; Move to next byte of the text
                         dec de                          ; Check whether there are any more bytes of text
                         ld a, d
@@ -262,10 +259,6 @@ SavedStack equ $+1:     ld sp, SMC
 pend
 
 ESPValidateCmdProc      proc                            ; a = Op, hl = ValWordAddr
-                        ; TODO: response will be SLIP encoded, so $DB $CC needs unescaping to $C0,
-                        ; and $DB $DC needs escaping to $DB.
-                        ; This needs to happen for ALL the bytes below except for the starting
-                        ; and terminating $C0 byte!
                         ld (Opcode), a
                         ld (ValWordAddr4), hl
                         inc hl
@@ -279,37 +272,47 @@ ESPValidateCmdProc      proc                            ; a = Op, hl = ValWordAd
 FindFrame:              ld a, $C0
                         cpir                            ; Find next SLIP frame marker
                         jp po, FailWithoutReason        ; If we ran out of buffer, exit with failure
-                        jr nz, FailWithoutReason        ; If we didn't find a $C0, exit with failure
+                        jp nz, FailWithoutReason        ; If we didn't find a $C0, exit with failure
                         ld a, (hl)                      ; Read req/resp
+                        call SlipUnescape
                         dec bc
                         cp 1                            ; Is cmd response?
                         jr nz, FindFrame                ; If not, find next frame marker
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read Op
+                        call SlipUnescape
 Opcode equ $+1:         cp SMC                          ; Is expected Op?
                         jr nz, FindFrame                ; If not, find next frame marker
                         inc hl
                         dec bc
-                        ld e, (hl)
+                        ld a, (hl)
+                        call SlipUnescape
+                        ld e, a
                         inc hl
                         dec bc
-                        ld d, (hl)                      ; Read length word
+                        ld a, (hl)                      ; Read length word
+                        call SlipUnescape
+                        ld d, a
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 1
+                        call SlipUnescape
 ValWordAddr1 equ $+1:   ld (SMC), a                     ; Save value byte 1
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 2
+                        call SlipUnescape
 ValWordAddr2 equ $+1:   ld (SMC), a                     ; Save value byte 2
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 3
+                        call SlipUnescape
 ValWordAddr3 equ $+1:   ld (SMC), a                     ; Save value byte 3
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 4
+                        call SlipUnescape
 ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
                         ld a, e                         ; Simplistic version of checking DE is at least 2
                         or d                            ; Should always be larger hopefully, given the nature or ORing 0, 1 or 2 with the MSB
@@ -317,10 +320,12 @@ ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
                         jr c, FailWithoutReason         ; If Data length is smaller than 2 bytes, signal an error
                         inc hl                          ; Look ahead to the first data byte
                         ld a, (hl)
+                        call SlipUnescape
                         or a
                         jr z, DataSuccess               ; If data first byte is 00 we can continue treating as a success
                         inc hl                          ; We have a failure,
                         ld a, (hl)                      ; so read the data second byte as the reason
+                        call SlipUnescape
                         jr FailWithReason               ; and return a failure    */
 DataSuccess:            dec hl                          ; If data first byte is 00 (success), return to the original position before looking ahead
                         add hl, de                      ; Skip <length> bytes of data (for now)
@@ -359,6 +364,25 @@ ErrorCd00:              scf                             ; Set carry for error,
 FailWithoutReason:      xor a                           ; This returns error reason 0
                         scf
                         ret
+pend
+
+SlipUnescape            proc                            ; a = byte to unescape, hl = input buffer address
+                        cp $DB                          ; $DB $DC needs unescaping to $C0, and
+                        ret nz                          ; $DB $DD needs unescaping to $DB.
+                        inc hl                          ; Advance pointer without changing counter or destination
+                        ld a, (hl)                      ; Peek at second byte of potential escaping pair
+                        cp $DC
+                        jr nz, TryDD
+                        ld a, $C0                       ; We have unescaped to $C0,
+                        ret                             ; so return.
+TryDD:                  cp $DD
+                        jr nz, Not2ndOfPair
+                        ld a, $DB                       ; We have unescaped to $DB,
+                        ret                             ; so return.
+                        ret
+Not2ndOfPair:           dec hl                          ; Not an escaped pair,
+                        ld a, $DB                       ; so unwind
+                        ret                             ; and return.
 pend
 
 ESPWaitFlushWait        proc
