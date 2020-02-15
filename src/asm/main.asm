@@ -723,8 +723,8 @@ BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
                         SetReadTimeout(255)
                         DisableReadValidate()
                         ESPSendCmdWithData(ESP_SPI_FLASH_MD5, SLIP.Md5Block, SLIP.Md5BlockLen, Err.BadMd5)
-                        RestoreReadTimeout()
                         EnableReadValidate()
+                        RestoreReadTimeout()
 
                         ; Compare the 32 returned bytes in the buffer against the precalculated MD5 hash
                         ; we read from the firmware extended header.
@@ -773,9 +773,14 @@ HashVerified:           PrintMsg(Msg.GoodMd5)           ; "Hash of data verified
                         ; self.check_command("leave compressed flash mode", self.ESP_FLASH_DEFL_END, pkt)
                         ESPSendCmdWithData(ESP_FLASH_DEFL_END, SLIP.ExitBlock, SLIP.ExitBlockLen, Err.ExitWrite)
 
-                        ; ESP will always be reset on exit, whether error or success
                         PrintMsg(Msg.ResetESP)          ; "Resetting ESP..."
-                        PrintMsg(Msg.Success)
+                        call ResetESP
+                        call Wait80Frames
+                        SetReadTimeout(255)
+                        call ESPReadIntoBuffer
+                        call ESPReadIntoBuffer
+                        RestoreReadTimeout()
+                        PrintMsg(Msg.Success)           ; "ESP updated successfully!"
 EndOfCommand:
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached

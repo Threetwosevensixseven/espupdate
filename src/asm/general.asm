@@ -75,7 +75,6 @@ pend
 
 Return                  proc                            ; This routine restores everything preserved at the start of
 ToBasic:                                                ; the dot cmd, for success and errors, then returns to BASIC.
-                        call ResetESP                   ; Do this before we do anything else
                         call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
@@ -87,7 +86,6 @@ IY1 equ $+1:            ld iy, SMC                      ; Restore IY
                         ret                             ; Return to BASIC
 WithCustomError:
                         push hl
-                        call ResetESP                   ; Do this before we do anything else
                         call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
