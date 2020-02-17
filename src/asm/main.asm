@@ -51,6 +51,7 @@ Begin:                  di                              ; We run with interrupts
                         ld (IsNext), a
 
                         NextRegRead(Reg.MachineID)      ; If we passed that test we are safe to read machine ID.
+                        and %0000 1111                  ; Only look at bottom four bits, to allow for Next clones
                         cp 10                           ; 10 = ZX Spectrum Next
                         jp z, IsANext                   ;  8 = Emulator
                         cp 8                            ; Exit with error if not a Next. HL still points to err message,
