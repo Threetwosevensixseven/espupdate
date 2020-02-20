@@ -7,7 +7,8 @@ if (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::
 function download-tool {
 	Param (
 		[string]$fn, 
-		[string]$url = "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/"
+		[string]$url = "https://github.com/Threetwosevensixseven/espupdate/raw/master/build/",
+		[string]$dest = ""
     )
 	$force = $true;
 	if ((-not $force) -and (Test-Path $fn)) {
@@ -15,7 +16,7 @@ function download-tool {
 	} else {
 		Write-Output "Downloading $fn..."
 		[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12	
-		wget "$url$fn" -outfile "$fn"
+		wget "$url$fn" -outfile "$dest$fn"
 		Write-Output "Downloaded $fn"
 	}
 }
@@ -30,4 +31,7 @@ download-tool zlib64.dll
 download-tool hdfmonkey.exe
 download-tool pskill.exe
 download-tool ZXVersion.exe
+download-tool ESP8266_stub_data.bin https://github.com/Threetwosevensixseven/espupdate/raw/master/fw/ESP8266_FULL_V3.3_SPUGS/ ..\fw\ESP8266_FULL_V3.3_SPUGS\
+download-tool ESP8266_stub_text.bin https://github.com/Threetwosevensixseven/espupdate/raw/master/fw/ESP8266_FULL_V3.3_SPUGS/ ..\fw\ESP8266_FULL_V3.3_SPUGS\
+download-tool esptool.py https://github.com/Threetwosevensixseven/espupdate/raw/master/fw/ESP8266_FULL_V3.3_SPUGS/ ..\fw\ESP8266_FULL_V3.3_SPUGS\
 download-tool zeustest.exe http://www.desdes.com/products/oldfiles/
