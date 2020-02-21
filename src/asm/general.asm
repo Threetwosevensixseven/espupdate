@@ -163,21 +163,21 @@ SavedStack equ $+1:     ld sp, SMC                      ; Restore stack
                         ret
 pend
 
-SaveReadTimeoutProc     proc                            ; a = FramesToWait. Since we only really need to call
-                        push af                         ; ESPReadIntoBuffer with longer timeouts once, it's easier
-                        ld a, (ESPReadIntoBuffer.WaitNFrames) ; to self-modify the timeout routine when needed,
-                        ld (TimeoutBackup), a           ; rather than have it always take a timeout parameter.
-                        pop af
-Set:                    ld (ESPReadIntoBuffer.WaitNFrames), a
+SaveReadTimeoutProc     proc                            ; hl = FramesToWait. Since we only really need to call
+                        push hl                         ; ESPReadIntoBuffer with longer timeouts once, it's easier
+                        ld hl, (ESPReadIntoBuffer.WaitNFrames) ; to self-modify the timeout routine when needed,
+                        ld (TimeoutBackup), hl           ; rather than have it always take a timeout parameter.
+                        pop hl
+Set:                    ld (ESPReadIntoBuffer.WaitNFrames), hl
                         ret
 pend
 
 RestoreReadTimeoutProc  proc                            ; Counterpart to SaveReadTimeoutProc, restores the
-                        ld a, (TimeoutBackup)           ; original timeout.
+                        ld hl, (TimeoutBackup)          ; original timeout.
                         jr SaveReadTimeoutProc.Set
 pend
 
-/*WaitKey                 proc                            ; Just a debugging routine that allows me to clear
+WaitKey                 proc                            ; Just a debugging routine that allows me to clear
                         Border(6)                       ; my serial logs at a certain point, before logging
                         ei                              ; the traffic I'm interested in debugging.
 Loop1:                  xor a
@@ -195,7 +195,7 @@ Loop2:                  xor a
                         Border(7)
                         di
                         ret
-pend*/
+pend
 
 WaitKeyYN               proc                            ; Returns carry set if no, carry clear if yes
                         ei                              ; Also prints Y or N followed by CR

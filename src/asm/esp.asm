@@ -88,7 +88,6 @@ pend
 
 Baud                    proc Table:
 b115200:                dw $8173, $8178, $817F, $8204, $820D, $8215, $821E, $816A
-//b1152000:               dw $8018, $8019, $801A, $801A, $801B, $801C, $801D, $8017
 pend
 
 Timings:                proc Table:
@@ -170,67 +169,6 @@ ReadLoop:               ld a, high UART_GetStatus       ; Are there any characte
                         jr ReadLoop                     ; then check if there are more data bytes ready to read
 pend
 
-/*ESPSendTestBytes      proc                            ; Send 256 bytes to UART, with values 0..255
-                        ld h, 0
-                        ld bc, $133B                    ; UART Tx port also gives the UART status when read
-WaitNotBusy:            in a, (c)                       ; Read the UART status
-                        and 2                           ; and check the busy bit (bit 1)
-                        jr nz, WaitNotBusy              ; If busy, keep trying until not busy
-                        ld a, h                         ; Otherwise read the next byte of the text to be sent
-                        out (c), a                      ; and end it to the UART TX port
-                        inc h
-                        jr nz, WaitNotBusy
-                        ret
-pend*/
-
-/*ESPRead                 proc
-                        ld a, (FRAMES)
-                        add a, 5
-                        ld (TimeoutFrame), a
-                        ld bc, UART_GetStatus
-                        ei
-WaitNotBusy:            ld a, high UART_GetStatus       ; Are there any characters waiting?
-                        in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
-                        rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
-                        jp c, HasData                   ; Read Data if Available
-                        ld a, (FRAMES)
-TimeoutFrame equ $+1:   cp SMC
-                        jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
-                        di
-                        ret                             ; Return if N frames (5) has elapsed with no data
-HasData:                inc b                           ; Otherwise Read the byte
-                        in a, (c)                       ; from the UART Rx port
-                        push bc
-                        call PrintAHex
-                        pop bc
-                        dec b
-                        jr WaitNotBusy                  ; then check if there are more data bytes ready to read
-pend*/
-
-/*ESPReadPrint            proc
-                        ld a, (FRAMES)
-                        add a, 5
-                        ld (TimeoutFrame), a
-                        ld bc, UART_GetStatus
-                        ei
-WaitNotBusy:            ld a, high UART_GetStatus       ; Are there any characters waiting?
-                        in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
-                        rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
-                        jp c, HasData                   ; Read Data if Available
-                        ld a, (FRAMES)
-TimeoutFrame equ $+1:   cp SMC
-                        jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
-                        di
-                        ret                             ; Return if N frames (5) has elapsed with no data
-HasData:                inc b                           ; Otherwise Read the byte
-                        in a, (c)                       ; from the UART Rx port
-                        push bc
-                        call PrintChar
-                        pop bc
-                        dec b
-                        jr WaitNotBusy                  ; then check if there are more data bytes ready to read
-pend*/
-
 ESPClearBuffer:         proc
                         FillLDIR(Buffer, Buffer.Len, 0)
                         ret
@@ -242,17 +180,22 @@ ESPReadIntoBuffer       proc
                         ld sp, $8000                    ; Put stack in upper 16K so FRAMES gets update
                         ei
                         call ESPClearBuffer
-                        ld a, (FRAMES)
-WaitNFrames equ $+1:    add a, 5
-                        ld (TimeoutFrame), a
+                        ld hl, (FRAMES)
+                        add hl, [WaitNFrames]5
+                        ld (TimeoutFrame), hl
                         ld bc, UART_GetStatus
                         ld hl, Buffer
                         ld de, Buffer.Len
 WaitNotBusy:            in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
                         jp c, HasData                   ; Read Data if available
-                        ld a, (FRAMES)
-TimeoutFrame equ $+1:   cp SMC
+                        push hl
+                        push bc
+                        ld hl, (FRAMES)
+                        ld bc, [TimeoutFrame]SMC
+                        CpHL(bc)
+                        pop bc
+                        pop hl
                         jp nz, WaitNotBusy              ; Try again for at least another N frames (5)
                         di
                         scf                             ; Set carry to signal error if N frames with no data,
@@ -268,7 +211,7 @@ HasData:                inc b                           ; Otherwise Read the byt
                         jr nz, WaitNotBusy              ; If so, check if there are more data bytes ready to read,
                         or a                            ; otherwise clear carry to signal success,
 Return:                 di
-SavedStack equ $+1:     ld sp, SMC
+                        ld sp, [SavedStack]SMC
                         ret                             ; and return
 pend
 
@@ -296,7 +239,7 @@ FindFrame:              ld a, $C0
                         dec bc
                         ld a, (hl)                      ; Read Op
                         call SlipUnescape
-Opcode equ $+1:         cp SMC                          ; Is expected Op?
+                        cp [Opcode]SMC                  ; Is expected Op?
                         jr nz, FindFrame                ; If not, find next frame marker
                         inc hl
                         dec bc
@@ -312,22 +255,22 @@ Opcode equ $+1:         cp SMC                          ; Is expected Op?
                         dec bc
                         ld a, (hl)                      ; Read value byte 1
                         call SlipUnescape
-ValWordAddr1 equ $+1:   ld (SMC), a                     ; Save value byte 1
+                        ld ([ValWordAddr1]SMC), a       ; Save value byte 1
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 2
                         call SlipUnescape
-ValWordAddr2 equ $+1:   ld (SMC), a                     ; Save value byte 2
+                        ld ([ValWordAddr2]SMC), a       ; Save value byte 2
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 3
                         call SlipUnescape
-ValWordAddr3 equ $+1:   ld (SMC), a                     ; Save value byte 3
+                        ld ([ValWordAddr3]SMC), a       ; Save value byte 3
                         inc hl
                         dec bc
                         ld a, (hl)                      ; Read value byte 4
                         call SlipUnescape
-ValWordAddr4 equ $+1:   ld (SMC), a                     ; Save value byte 4
+                        ld ([ValWordAddr4]SMC), a       ; Save value byte 4
                         ld a, e                         ; Simplistic version of checking DE is at least 2
                         or d                            ; Should always be larger hopefully, given the nature or ORing 0, 1 or 2 with the MSB
                         cp 2                            ; TODO: If we get unexpected failures later, revisit this compare
@@ -448,7 +391,7 @@ NoDataBlock16:
                         call ESPReadIntoBuffer          ; Read the UART dry into the buffer, or at least 1024 bytes
                         ld a, (SLIP.HeaderOp)           ; Validate for the same Op we sent the command for
                         ld hl, Dummy32                  ; We don't want to preserve the value
-ValidateProcSMC equ $+1:call ESPValidateCmdProc         ; < SMC a = Op, hl = ValWordAddr (carry set means error)
+                        call [ValidateProcSMC]ESPValidateCmdProc ; < SMC a = Op, hl = ValWordAddr (carry set means error)
                         pop hl                          ; Retrieve ErrAddr (always, to balance stack)
                         ret nc                          ; If no error we can return
                         jp ErrorProc                    ; Otherwise signal a fatal error with the passed-in error msg
@@ -504,7 +447,7 @@ SetUARTBaudProc         proc                            ; hl = BaudTable, de = B
                         PrintMsg(Msg.SetBaud3)          ; " timings"
                         pop af
                         add a,a
-BaudTable equ $+1:      ld hl, SMC                      ; Restore BaudTable
+                        ld hl, [BaudTable]SMC           ; Restore BaudTable
                         add hl, a
                         ld e, (hl)
                         inc hl

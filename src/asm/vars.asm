@@ -56,7 +56,7 @@ FWCompLenStr:           ds 11
 HeaderBlockSize:        ds 2                    ; MSB is always zero
 BlockCount:             ds 2
 BlockHeaderStart:       ds 2
-TimeoutBackup:          ds 1
+TimeoutBackup:          ds 2
 InProgMode:             ds 1
 
 ; Features

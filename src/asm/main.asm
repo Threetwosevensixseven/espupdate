@@ -346,9 +346,12 @@ ReadEfuses:
                         call Wait5Frames
                         call ESPFlush                   ; Clear UART buffer
                         call Wait5Frames
+                        //SetReadTimeout(500)
+                        //call WaitKey
                         ESPReadReg(0x3ff0005c)          ; Read this address
                         call Wait5Frames
                         call ESPReadIntoBuffer
+                        //call WaitKey
                         ESPValidateCmd($0A, eFuse1)     ; val = 0x00600194 (on test ESP)
 
                         call Wait5Frames
@@ -518,6 +521,7 @@ PrintMAC:
                         call Rst16
 UploadStub:
                         PrintMsg(Msg.Stub1)
+                        //SetReadTimeout(50)
                         ; These are the value for uploading the stub:
                         ;
                         ; text_start  = 0x4010E000
@@ -689,9 +693,11 @@ FlashLoop:
                         ErrorIfCarry(Err.ReadFW)
 BlockDataLen equ $+1:   ld bc, SMC                      ; bc = compressed block size (DataLen)
 BlockSeqNo equ $+1:     ld de, SMC                      ; de = Seq number (Seq)
+                        SetReadTimeout(500)
                         ESPSendDataBlockSeq(ESP_FLASH_DEFL_DATA, $C000, Err.FlashUp)
+                        RestoreReadTimeout()
 
-                        call Wait100Frames              ; Pause to allow decompression
+                        //call Wait100Frames              ; Pause to allow decompression
 
                         ld hl, (BlockHeaderStart)
                         ld de, (HeaderBlockSize)

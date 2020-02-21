@@ -278,7 +278,7 @@ ESPSendDataBlockSeq     macro(Opcode, DataAddr, ErrAddr); As ESPSendDataBlock(),
 mend
 
 SetReadTimeout          macro(FramesToWait)             ; Parameterised wrapper for the ESP SLIP buffer read timeout
-                        ld a, FramesToWait              ; changing routine. Invoke RestoreReadTimeout() afterwards.
+                        ld hl, FramesToWait             ; changing routine. Invoke RestoreReadTimeout() afterwards.
                         call SaveReadTimeoutProc
 mend
 
