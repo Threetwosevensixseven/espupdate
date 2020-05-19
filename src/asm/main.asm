@@ -16,7 +16,7 @@
                                                         ; Assembles with regular version of Zeus (not Next version),
 zeusemulate             "Next", "RAW", "NOROM"          ; because that makes it easier to assemble dot commandszxnextmap -1,DotCommand8KBank,-1,-1,-1,-1,-1,-1         ; Assemble into Next RAM bank but displace back down to $2000
 zxnextmap -1,DotBank1,-1,-1,DotBank2,DotBank3,-1,-1     ; Assemble into Next RAM bank but displace back down to $2000
-zoSupportStringEscapes  = true;                         ; Download Zeus.exe from http://www.desdes.com/products/oldfiles/
+zoSupportStringEscapes  = true;                         ; Download zeustest.exe from http://www.desdes.com/products/oldfiles/
 optionsize 10
 CSpect optionbool 15, -10, "CSpect", false              ; Option in Zeus GUI to launch CSpect
 RealESP optionbool 80, -10, "Real ESP", false           ; Launch CSpect with physical ESP in USB adaptor
