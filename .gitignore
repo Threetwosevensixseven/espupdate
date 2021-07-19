@@ -28,3 +28,5 @@ obj
 /fw/*.zip
 /esprog
 /fw/flash_download_tools_v3.6.8
+*.zfac
+md5.txt

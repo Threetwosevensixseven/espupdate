@@ -25,6 +25,7 @@ namespace PackageFW.Data
     public class NxEspHeader
     {
         const string MAGIC = "NXESP";
+        public bool PreCompressed { get; set; }
         public byte[] Md5 { get; set; }
         public string Version { get; set; }
         public short FlashParams { get; set; }
@@ -35,7 +36,9 @@ namespace PackageFW.Data
         public byte[] Serialize(byte[] Uncompressed)
         {
             Blocks = new List<NxEspHeaderBlock>();
-            var fwCompressed = Compress(Uncompressed);
+            var fwCompressed = Uncompressed;
+            if (!PreCompressed)
+                fwCompressed = Compress(Uncompressed);
             int blockCount = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(fwCompressed.Length) / DataBlockSize));
             double cumSize = 0;
             for (int i = 0; i < blockCount; i++)

@@ -27,6 +27,7 @@ namespace PackageFW
     class Program
     {
         public static bool Verbose;
+        public static bool NoCompression;
         static bool Interactive;
         static string InputFile;
         static string OutputFile;
@@ -47,6 +48,8 @@ namespace PackageFW
                 Verbose = args.Any(a => a == "-v");
                 if (Verbose)
                     Console.WriteLine("Running in verbose mode");
+                NoCompression = args.Any(a => a == "-nc");
+                Console.WriteLine("Expecting input file to be " + (NoCompression ? "precompressed with -md5 provided" : "uncompressed"));
                 if (args.Length < 2)
                     return Help();
 
@@ -55,21 +58,22 @@ namespace PackageFW
                 if (string.IsNullOrWhiteSpace(InputFile))
                     return Help();
                 if (!File.Exists(InputFile))
-                    Error("Input file \"" + InputFile + "\" doesn't exist.");
+                    return Error("Input file \"" + InputFile + "\" doesn't exist.");
                 try
                 {
                     InputBytes = File.ReadAllBytes(InputFile);
                 }
                 catch { }
                 if (InputBytes == null || InputBytes.Length == 0)
-                    Error("Cannot open input file \"" + InputFile + "\".");
-                Console.WriteLine("Input firmware: " + InputBytes.Length + " bytes");
-                if (InputBytes.Length < 0x100000) // 1MB
+                    return Error("Cannot open input file \"" + InputFile + "\".");
+                Console.WriteLine("Input firmware: " + InputBytes.Length + " bytes (" 
+                    + (NoCompression ? "pre" : "un") + "compressed)");
+                if (!NoCompression && InputBytes.Length < 0x100000) // 1MB
                 {
                     var ib = InputBytes.ToList();
                     Pad(ib, 0x100000);
                     InputBytes = ib.ToArray();
-                    Console.WriteLine("Padding input firmware to: " + InputBytes.Length + " bytes");
+                    Console.WriteLine("Padding uncompressed input firmware to: " + InputBytes.Length + " bytes");
                 }
 
                 // Output file
@@ -99,16 +103,33 @@ namespace PackageFW
                 header.DataBlockSize = BlockSize;
                 Console.WriteLine("Block size: 0x" + BlockSize.ToString("X2"));
 
+                // Precalculated MD5 hash
+                if (NoCompression)
+                {
+                    string md5Arg = (args.FirstOrDefault(a => a.StartsWith("-md5=")) ?? "      ").Substring(5).Trim();
+                    Console.WriteLine("MD5 Hash: " + md5Arg + " (supplied)");
+                    if (md5Arg.Length != 32)
+                        return Error("MD5 Hash must be 32 characters long.");
+                    header.Md5 = HexToBytes(md5Arg);
+                    header.PreCompressed = true;
+                }
+
                 // Set flash params
-                InputBytes[2] = Convert.ToByte((FlashParams & 0xff00) >> 8);
-                InputBytes[3] = Convert.ToByte(FlashParams & 0xff);
+                if (!NoCompression)
+                {
+                    InputBytes[2] = Convert.ToByte((FlashParams & 0xff00) >> 8);
+                    InputBytes[3] = Convert.ToByte(FlashParams & 0xff);
+                }
 
                 // Calculate MD5 hash
-                using (MD5 md5 = MD5.Create())
+                if (!NoCompression)
                 {
-                    header.Md5 = md5.ComputeHash(InputBytes); // 16 bytes of binary, not hex string
-                    string hash = BitConverter.ToString(header.Md5).Replace("-", "").ToLowerInvariant();
-                    Console.WriteLine("MD5 Hash: " + hash);
+                    using (MD5 md5 = MD5.Create())
+                    {
+                        header.Md5 = md5.ComputeHash(InputBytes); // 16 bytes of binary, not hex string
+                        string hash = BitConverter.ToString(header.Md5).Replace("-", "").ToLowerInvariant();
+                        Console.WriteLine("MD5 Hash: " + hash + " (calculated)");
+                    }
                 }
 
                 OutputBytes = new List<byte>();
@@ -152,5 +173,12 @@ namespace PackageFW
             Output.AddRange(Enumerable.Repeat(Convert.ToByte(0xff), Size - Output.Count));
         }
 
+        static byte[] HexToBytes(string hex)
+        {
+            return Enumerable.Range(0, hex.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                .ToArray();
+        }
     }
 }
