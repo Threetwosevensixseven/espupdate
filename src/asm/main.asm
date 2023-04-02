@@ -1,6 +1,6 @@
 ; main.asm
 
-;  Copyright 2020 Robin Verhagen-Guest
+;  Copyright 2020-2023 Robin Verhagen-Guest
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -101,6 +101,7 @@ ArgLoop:                ld de, ArgBuffer                ; Parse remaining args i
                         jr nc, NoMoreArgs
                         call ParseHelp
                         call ParseForce
+                        call ParseWaitKeyRet
                         jr ArgLoop
 NoMoreArgs:
                         ld a, (WantsHelp)
@@ -819,7 +820,7 @@ zeusprinthex "Lower code: ", LowerCodeStart, LowerCodeLen
 zeusprinthex "Upper code: ", UpperCodeStart, UpperCodeLen
 zeusprinthex "Cmd size:   ", Length
 
-zeusassert zeusver<=75, "Upgrade to Zeus v4.00 (TEST ONLY) or above, available at http://www.desdes.com/products/oldfiles/zeustest.exe"
+zeusassert zeusver>=75, "Upgrade to Zeus v4.00 (TEST ONLY) or above, available at http://www.desdes.com/products/oldfiles/zeustest.exe"
 
 if (LowerCodeLen > $2000)
   zeuserror "DOT command (lower code) is too large to assemble!"

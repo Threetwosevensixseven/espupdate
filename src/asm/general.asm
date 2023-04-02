@@ -1,6 +1,6 @@
 ; general.asm
 
-;  Copyright 2020 Robin Verhagen-Guest
+;  Copyright 2020-2023 Robin Verhagen-Guest
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -48,7 +48,14 @@ Stop:                     Border(2)
 NoCR:                     push hl                       ; If we want to print the error at the top of the screen,
                           call PrintRst16Error          ; as well as letting BASIC print it in the lower screen,
                           pop hl                        ; then uncomment this code.
-                          jp Return.WithCustomError     ; Straight to the error handing exit routine
+                          ld a, (ErrorProc)
+                          or a                          ; If not waiting for ENTER, go straight to the error
+                          jp z, Return.WithCustomError  ; handing exit routine.
+                          push hl
+                          PrintMsg(Msg.PressEnter)      ; Otherwise print "Press ENTER to exit...",
+                          call WaitKeyEnter             ; then wait for ENTER,
+                          pop hl
+                          jp z, Return.WithCustomError  ; then go straight to the error handing exit routine
                         endif
 pend
 
@@ -89,7 +96,12 @@ pend
 
 Return                  proc                            ; This routine restores everything preserved at the start of
 ToBasic:                                                ; the dot cmd, for success and errors, then returns to BASIC.
-                        call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
+                        ld a, (WaitKeyRet)
+                        or a
+                        jr z, NoKey                     ; If -k argument was not passed, carry on.
+                        PrintMsg(Msg.PressEnter)        ; Otherwise print "Press ENTER to exit...",
+                        call WaitKeyEnter               ; then wait for ENTER.
+NoKey:                  call DeallocateBanks            ; Return allocated 8K banks and restore upper 48K banking
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
 Stack                   ld sp, SMC                      ; Unwind stack to original point
@@ -228,6 +240,18 @@ Print:                  call Rst16
                         ret
 pend
 
+WaitKeyEnter            proc
+                        ld bc, zeuskeyaddr("[enter]")
+Loop1:                  in a, (c)
+                        and zeuskeymask("[enter]")
+                        jr z, Loop1
+Loop2:                  in a, (c)
+                        and zeuskeymask("[enter]")
+                        jr nz, Loop2
+                        ret
+pend
+
+
 ; ***************************************************************************
 ; * Parse an argument from the command tail                                 *
 ; ***************************************************************************
@@ -338,4 +362,23 @@ ParseForce              proc
 Return:                 pop hl
                         ret
 pend
+
+ParseWaitKeyRet         proc
+                        ld a, b
+                        or c
+                        cp 2
+                        ret nz
+                        push hl
+                        ld hl, ArgBuffer
+                        ld a, (hl)
+                        cp '-'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp 'k'
+                        jr nz, Return
+                        ld a, 1
+                        ld (WaitKeyRet), a
+Return:                 pop hl
+                        ret
 

@@ -1,6 +1,6 @@
 ; msg.asm
 
-;  Copyright 2020 Robin Verhagen-Guest
+;  Copyright 2020-2023 Robin Verhagen-Guest
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 Msg                     proc
   Startup:              db "ESP UPDATE TOOL v1.", BuildNoValue//, VerSuffix
                         //db " (", BuildTimeSecsValue, ")"
-                        db CR, Copyright, " 2020 Robin Verhagen-Guest", CR, CR, 0
+                        db CR, Copyright, " 2020-2023 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   ReadFW:               db "Reading firmware...", CR, 0
   ExternalFW:           db "This ESPUPDATE version does not have embedded firmware. "
@@ -54,6 +54,7 @@ Msg                     proc
   HashGot:              db CR, "ESP reports MD5 hash:", CR, 0
   Finalize:             db "Finalising new firmware...", CR, 0
   ResetESP:             db "Resetting ESP...", CR, 0
+  PressEnter:           db CR, "Press ENTER to exit...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
                         if enabled AppendFW
                           db "espupdate [-y] [-h]", CR
@@ -78,7 +79,7 @@ Msg                     proc
                         db "  Display this help", CR, CR
                         db "ESP UPDATE TOOL v1.", BuildNoValue, CR
                         db BuildDateValue, " ", BuildTimeSecsValue, CR
-                        db Copyright, " 2020 Robin Verhagen-Guest", CR, 0
+                        db Copyright, " 2020-2023 Robin Verhagen-Guest", CR, 0
 pend
 
 Err                     proc
@@ -115,7 +116,7 @@ PrintRst16              proc
                         SafePrintStart()
                         if DisableScroll
                           ld a, 24                      ; Set upper screen to not scroll
-                          ld (SCR_CT), a                ; for another 24 rows of printing
+OverrideScroll:           ld (SCR_CT), a                ; for another 24 rows of printing
                         endif
                         ei
 Loop:                   ld a, (hl)
