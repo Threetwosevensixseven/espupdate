@@ -57,12 +57,12 @@ Msg                     proc
   PressEnter:           db CR, "Press ENTER to exit...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
                         if enabled AppendFW
-                          db "espupdate [-y] [-h]", CR
+                          db "espupdate [-y] [-k] [-h]", CR
                           db "Update ESP with default firmware", CR, CR
-                          db "espupdate FILENAME [-y] [-h]", CR
+                          db "espupdate FILENAME [-y] [-k]", CR, "  [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                         else
-                          db "espupdate FILENAME [-y] [-h]", CR
+                          db "espupdate FILENAME [-y] [-k]", CR, "  [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                           db "espupdate -h", CR
                           db "Display this help", CR, CR
@@ -70,11 +70,13 @@ Msg                     proc
 
                         db "OPTIONS", CR, CR
                         db "  FILENAME", CR
-                        db "  A file containing ESP firmware  in the NXESP format", CR
+                        db "  A file containing ESP firmware", CR, "  in the NXESP format", CR
                         db "  For more info, see the FAQ at:", CR
                         db "  tinyurl.com/espfaq", CR, CR
                         db "  -y", CR
                         db "  Skip \"Are you sure?\"", CR, CR
+                        db "  -k", CR
+                        db "  Wait for ENTER keypress before", CR, "  exiting", CR, CR
                         db "  -h", CR
                         db "  Display this help", CR, CR
                         db "ESP UPDATE TOOL v1.", BuildNoValue, CR
