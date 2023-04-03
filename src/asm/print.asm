@@ -237,3 +237,15 @@ PrintBufferHexProc      proc                            ; hl = Addr, de = Length
                         ret
 pend
 
+DisablePrintScroll      proc
+                        if enabled DisableScroll
+                          xor a                                 ; NOP out the ld (SCR_CT), a
+                          ld (PrintRst16.OverrideScroll), a
+                          ld (PrintRst16.OverrideScroll+1), a
+                          ld (PrintRst16.OverrideScroll+2), a
+                          inc a                                 ; Set up scroll to happen
+                          ld (SCR_CT), a                        ; as soon as we hit the bottom of the screen
+                        endif
+                        ret
+pend
+

@@ -107,7 +107,8 @@ NoMoreArgs:
                         ld a, (WantsHelp)
                         or a
                         jr z, NoHelp
-DoHelp:                 PrintMsg(Msg.Help)
+DoHelp:                 call DisablePrintScroll         ; When printing help, honour original scroll
+                        PrintMsg(Msg.Help)              ; Print help
                         if (ErrDebug)
                           Freeze(1,2)
                         else

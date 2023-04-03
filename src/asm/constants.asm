@@ -20,7 +20,7 @@ DotBank1:               equ 30
 DotBank2:               equ 31
 DotBank3:               equ 32
 ResetWait               equ 5
-DisableScroll           equ false
+DisableScroll           equ true
 TestWorkflow            equ false
 FastUART                equ false
 WriteDelay              equ 80
