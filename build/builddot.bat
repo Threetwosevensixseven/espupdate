@@ -33,12 +33,12 @@ set serarg="-com=\"COM5:115200\" "
 :: Launch CSpect if option was set
 if %cspect% equ 0 goto NoCSpect
 pskill.exe -t cspect.exe
-hdfmonkey.exe put C:\spec\sd207\cspect-next-2gb.img ..\dot\espupdate dot
-hdfmonkey.exe put C:\spec\sd207\cspect-next-2gb.img ..\dot\espupdate dot\extra
-::hdfmonkey.exe put C:\spec\sd207\cspect-next-2gb.img autoexec.bas nextzxos\autoexec.bas
-hdfmonkey.exe put C:\spec\sd207\cspect-next-2gb.img "..\fw\ESP8266_FULL_V3.3_SPUGS\ESP8266_FULL_V3.3_SPUGS.nxesp" "Mine\MY FW.nxesp"
-cd C:\spec\CSpect2_19_0_3
-CSpect.exe -w2 -zxnext -nextrom -basickeys -exit -brk -tv %serarg%-mmc=..\sd207\cspect-next-2gb.img
+hdfmonkey.exe put C:\spec\sd208\cspect-next-2gb.img ..\dot\espupdate dot
+hdfmonkey.exe put C:\spec\sd208\cspect-next-2gb.img ..\dot\espupdate dot\extra
+::hdfmonkey.exe put C:\spec\sd208\cspect-next-2gb.img autoexec.bas nextzxos\autoexec.bas
+hdfmonkey.exe put C:\spec\sd208\cspect-next-2gb.img "..\fw\ESP8266_FULL_V3.3_SPUGS\ESP8266_FULL_V3.3_SPUGS.nxesp" "Mine\MY FW.nxesp"
+cd C:\spec\CSpect2_19_4_3
+CSpect.exe -w2 -zxnext -nextrom -basickeys -exit -brk -tv %serarg%-mmc=..\sd208\cspect-next-2gb.img
 :NoCSpect
 
 ::pause

@@ -76,7 +76,16 @@ Reg                     proc
   Peripheral2           equ $06
   CPUSpeed              equ $07
   CoreLSB               equ $0E
+  BoardID               equ $0F
   VideoTiming           equ $11
+pend
+
+Issue                   proc Table:
+  ;  IssueID                 Size  MB        ; BoardID
+  db "2", CR,       ds 7, db 1,    "1", ds 5 ;       0
+  db "3", CR,       ds 7, db 4,    "4", ds 5 ;       1
+  db "4", CR,       ds 7, db 4,    "4", ds 5 ;       2
+  db "Unknown", CR, ds 1, db 4,    "4", ds 1 ;       3
 pend
 
 ; Chars

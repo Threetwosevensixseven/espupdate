@@ -38,6 +38,9 @@ Msg                     proc
   Success:              db "ESP updated successfully!", CR, 0
   ErrCd:                db "Error code: ", 0
   MAC2:                 db "MAC: ", 0
+  Issue:                db "Next issue: ", 0
+  FlashSize1:           db "Using flash size: ", 0
+  FlashSize2:           db "MB", CR, 0
   Confirm:              db "Are you sure? (y/n) ", 0
   Abort:                db "Not updating ESP", CR, 0
   Stub1:                db "Uploading stub...", CR, 0
@@ -59,15 +62,14 @@ Msg                     proc
                         if enabled AppendFW
                           db "espupdate [-y] [-k] [-h]", CR
                           db "Update ESP with default firmware", CR, CR
-                          db "espupdate FILENAME [-y] [-k]", CR, "  [-h]", CR
+                          db "espupdate FILENAME [-y] [-s=SZ]", CR, "  [k] [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                         else
-                          db "espupdate FILENAME [-y] [-k]", CR, "  [-h]", CR
+                          db "espupdate FILENAME [-y] [-s=SZ]", CR, "  [-k] [-h]", CR
                           db "Update ESP with the firmware in an external file", CR, CR
                           db "espupdate -h", CR
                           db "Display this help", CR, CR
                         endif
-
                         db "OPTIONS", CR, CR
                         db "  FILENAME", CR
                         db "  A file containing ESP firmware", CR, "  in the NXESP format", CR
@@ -75,6 +77,11 @@ Msg                     proc
                         db "  tinyurl.com/espfaq", CR, CR
                         db "  -y", CR
                         db "  Skip \"Are you sure?\"", CR, CR
+                        db "  -s=SZ", CR
+                        db "  Specify a flash size for ESP", CR,"  module. If omitted, assumes", CR
+                        db "  Issue 2 Nexts have 1MB, and", CR, "  everything else has 4MB", CR, CR
+                        db "  SZ", CR
+                        db "  Either 1 or 4 (in MB)", CR, CR
                         db "  -k", CR
                         db "  Wait for ENTER keypress before", CR, "  exiting", CR, CR
                         db "  -h", CR

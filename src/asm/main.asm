@@ -102,6 +102,7 @@ ArgLoop:                ld de, ArgBuffer                ; Parse remaining args i
                         call ParseHelp
                         call ParseForce
                         call ParseWaitKeyRet
+                        call ParseFlashSize
                         jr ArgLoop
 NoMoreArgs:
                         ld a, (WantsHelp)
@@ -521,6 +522,36 @@ PrintMAC:
                         call PrintAHexNoSpace
                         ld a, CR
                         call Rst16
+DetectIssue:
+                        PrintMsg(Msg.Issue)             ; "Using flash size: "
+                        NextRegRead(Reg.BoardID)        ; Read BoardID
+                        and 15                          ; 0 = Issue 2, 1 = Issue 3, 2 = Issue 4, 3..15 = Unknown
+                        cp 3
+                        jr c, GetIssue
+                        ld a, 2
+GetIssue:               swapnib                         ; a = record# in Issue table (BoardID * 16)
+                        ld hl, Issue.Table
+                        ld c, a
+                        ld b, 0
+                        add hl, bc                      ; hl = Issue record address
+                        push hl
+                        call PrintRst16
+                        PrintMsg(Msg.FlashSize1)        ; "MB\r"
+                        pop hl                          ; Read passed-in flash size arg
+                        ld a, (FlashSizeChar)
+                        or a                            ; If nothing was passed in arg,
+                        jp z, DefaultSize               ; use 1 for issue 2, and 4 for everything else.
+                        ld hl, FlashSizeChar            ; Otherwise use passed in arg,
+                        jr  PrintSize                   ; and print the corresponding size.
+DefaultSize:            add hl, 9                       ; (hl) = flash size (Num) in MB
+                        ld a, (hl)
+                        ld (FlashSizeNum), a
+                        inc hl                          ; (hl) = flash size (ASCII) in MB
+                        ld a, (hl)
+                        ld (FlashSizeChar), a
+PrintSize:              call PrintRst16                 ; Assume any unknown Board IDs have 4MB flash size
+                        PrintMsg(Msg.FlashSize2)
+
 UploadStub:
                         PrintMsg(Msg.Stub1)
                         //SetReadTimeout(50)

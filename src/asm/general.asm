@@ -381,4 +381,41 @@ ParseWaitKeyRet         proc
                         ld (WaitKeyRet), a
 Return:                 pop hl
                         ret
+pend
+
+ParseFlashSize          proc
+                        ld a, b
+                        or c
+                        cp 4
+                        ret nz
+                        push hl
+                        ld hl, ArgBuffer
+                        ld a, (hl)
+                        cp '-'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp 's'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp '='
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp '1'
+                        jr z, IsOne
+                        cp '4'
+                        jr z, IsFour
+Return:                 pop hl
+                        ret
+IsOne:                  ld (FlashSizeChar), a
+                        ld a, 1
+                        ld (FlashSizeNum), a
+                        jr Return
+IsFour:                 ld (FlashSizeChar), a
+                        ld a, 4
+                        ld (FlashSizeNum), a
+                        jr Return
+pend
 

@@ -25,6 +25,8 @@ Force:                  ds 1
 WaitKeyRet:             ds 1
 Progress:               ds 16                   ; 15 chars with terminating null
 CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
+FlashSizeChar:          ds 2                    ; 0 = unassigned, '1' = 1MB, '4' = 4MB
+FlashSizeNum:           ds 1                    ; 0 = unassigned,  1  = 1MB,  4  = 4MB
 
 ; UART
 Prescaler:              ds 3
