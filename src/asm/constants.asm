@@ -30,6 +30,8 @@ VerSuffix:                equ "e"
                         else
 VerSuffix:                equ "n"
                         endif
+BigBuffer:              equ $C000
+BigBufferLen:           equ $2000
 
 ; ESP
 ESP_OTP_MAC0            equ 0x3ff00050
@@ -45,6 +47,7 @@ ESP_FLASH_DEFL_BEGIN    equ 0x10
 ESP_FLASH_DEFL_DATA     equ 0x11
 ESP_FLASH_DEFL_END      equ 0x12
 ESP_SPI_FLASH_MD5       equ 0x13
+ESP_READ_FLASH          equ 0xd2
 ESP_CHECKSUM_MAGIC      equ 0xef
 ESP_IMAGE_MAGIC         equ 0xe9
 
@@ -53,6 +56,7 @@ M_ERRH                  equ $95
 
 ; NextZXOS
 IDE_BANK                equ $01BD
+IDE_MODE                equ $01D5
 
 ; UART
 UART_RxD                equ $143B                       ; Also used to set the baudrate
@@ -78,14 +82,6 @@ Reg                     proc
   CoreLSB               equ $0E
   BoardID               equ $0F
   VideoTiming           equ $11
-pend
-
-Issue                   proc Table:
-  ;  IssueID                 Size  MB        ; BoardID
-  db "2", CR,       ds 7, db 1,    "1", ds 5 ;       0
-  db "3", CR,       ds 7, db 4,    "4", ds 5 ;       1
-  db "4", CR,       ds 7, db 4,    "4", ds 5 ;       2
-  db "Unknown", CR, ds 1, db 4,    "4", ds 1 ;       3
 pend
 
 ; Chars

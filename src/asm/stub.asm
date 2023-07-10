@@ -29,6 +29,8 @@ ESP8266StubData:
 import_bin              "..\\..\\fw\\ESP8266_FULL_V3.3_SPUGS\\ESP8266_stub_data.bin"
 ESP8266StubDataLen      equ $-1
 
+//EndOfUpperCode = $
+
 ; Anything after here has addresses allocated, but doesn't get appended to the dot command during assembly.
 ; It does, however, get padded to 24K by AppendFW.exe.
 
@@ -41,4 +43,6 @@ Header                  proc
   Buffer:               ds 1024
   Len                   equ $-Header
 pend
+
+//org EndOfUpperCode
 

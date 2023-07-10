@@ -93,6 +93,13 @@ fClose:                 ld a, (Handle)
                         Rst8(esxDOS.F_CLOSE)            ; close file
                         ret
 
+CloseFile:
+                        ld a, (Handle)
+                        cp 255
+                        ret z
+                        Rst8(esxDOS.F_CLOSE)
+                        ret
+
 ; Function:             Seek into file
 ; In:                   A    = file handle
 ;                       L    = mode:  0 - from start of file

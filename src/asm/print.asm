@@ -19,9 +19,9 @@ Msg                     proc
                         //db " (", BuildTimeSecsValue, ")"
                         db CR, Copyright, " 2020-2023 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
+  NoScroll:             db 26, 0, -1
   ReadFW:               db "Reading firmware...", CR, 0
-  ExternalFW:           db "This ESPUPDATE version does not have embedded firmware. "
-                        db "Pick an .ESP file from the file browser in NextZXOS instead.", CR, 0
+  ExternalFW:           db "Pick an .ESP file from the file browser in NextZXOS, or specify filename as the first argument.", CR, 0
   FWVer:                db "Updating firmware to v", 0
   SetBaud1:             db "Using ", 0
   b115200:              db "115200", 0
@@ -57,6 +57,15 @@ Msg                     proc
   HashGot:              db CR, "ESP reports MD5 hash:", CR, 0
   Finalize:             db "Finalising new firmware...", CR, 0
   ResetESP:             db "Resetting ESP...", CR, 0
+  DumpingFW:            db "Dumping firmware...", CR, 0
+  Dump1:                db "4KB block ", 0
+  Dump2:                db "/", 0
+  Dump3:                db " (", 0
+  Dump4:                db "%)...", CR, 0
+  DumpingCS:            db "Getting MD5 hash...", CR, 0
+  DumpFile:             db "Dump file: ", 0
+  HashFile:             db CR, "Hash file: ", 0
+  DumpSuccess:          db "ESP dumped successfully!", CR, 0
   PressEnter:           db CR, "Press ENTER to exit...", CR, 0
   Help:                 db "Updates firmware for ESP8266-01 WiFi module on the Spectrum Next", CR, CR
                         if enabled AppendFW
@@ -119,6 +128,12 @@ Err                     proc
   BadMd5:               dbtb "MD5 hash failure"       ;
   Finalize:             dbtb "Error finalizing write" ;
   ExitWrite:            dbtb "Error exiting write"    ;
+  DumpInit:             dbtb "Error initiating dump"  ;
+  DumpCreate:           dbtb "Can't create dump file" ;
+  DumpParse:            dbtb "Error parsing dump"     ;
+  DumpSave:             dbtb "Error saving dump file" ;
+  HashCreate:           dbtb "Can't create hash file" ;
+  HashSave:             dbtb "Can't save hash file"   ;
 pend
 
 PrintRst16              proc
@@ -130,11 +145,24 @@ OverrideScroll:           ld (SCR_CT), a                ; for another 24 rows of
                         ei
 Loop:                   ld a, (hl)
                         inc hl
-                        or a
+                        cp [Terminator]0                ; <SMC can be changed to different terminator
                         jp z, Return
                         rst 16
                         jr Loop
 Return:                 SafePrintEnd()
+                        ret
+pend
+
+PrintRst16Alt           proc
+                        push af
+                        ld a, -1
+                        ld (PrintRst16.Terminator), a   ; Change terminator
+                        pop af
+                        call PrintRst16
+                        push af
+                        xor a
+                        ld (PrintRst16.Terminator), a   ; Restore terminator
+                        pop af
                         ret
 pend
 
@@ -208,7 +236,7 @@ Add:                    add a, c
                         ret
 pend
 
-PrintChar               proc
+/*PrintChar               proc
                         SafePrintStart()
                         ld b, a
                         if DisableScroll
@@ -225,7 +253,7 @@ PrintChar               proc
 NotPrintable:           ld a, '.'
                         rst 16
                         jp PrintRst16.Return
-pend
+pend*/
 
 Rst16                   proc
                         SafePrintStart()
@@ -253,6 +281,41 @@ DisablePrintScroll      proc
                           inc a                                 ; Set up scroll to happen
                           ld (SCR_CT), a                        ; as soon as we hit the bottom of the screen
                         endif
+                        ret
+pend
+
+PrintDumpProgress       proc
+                        call UpOneLine                          ;  Go up one line (allowing for screen mode)
+NoUp:                   PrintMsg(Msg.Dump1)                     ;  Print "4KB block "
+                        ld hl, [BlockNum]SMC
+                        inc hl                                  ; Increment block number (1..256 or 1..1024)
+                        ld (BlockNum), hl
+                        ld de, NumBuffer
+                        call Num2Dec                            ; Convert block number to ASCII, padded to 5 digits
+                        ld de, NumBuffer
+                        call TrimZeroes                         ; Find first non-zero digit
+                        call PrintRst16                         ; Print block number
+                        PrintMsg(Msg.Dump2)                     ; Print "/"
+                        ld hl, [BlockTot]Tot16
+                        call PrintRst16                         ; Print total block count (256 or 1024)
+                        PrintMsg(Msg.Dump3)                     ; Print " ("
+                        ld hl, [PercentTot]0                    ; Calculate running percentage,
+                        ld de, [PercentInc]$0640                ; by adding a fractional amount (100/256 or 100/1024),
+                        add hl, de                              ; using 8.8 fixed point arithmetic.
+                        ld (PercentTot), hl                     ; Store running percentage for next time.
+                        ld l, h                                 ; Take integer portion in MSB,
+                        ld h, 0                                 ; and discard fractional portion in LSB.
+                        ld de, NumBuffer
+                        call Num2Dec                            ; Convert percentage to ASCII, padded to 5 digits
+                        ld de, NumBuffer
+                        call TrimZeroes                         ; Find first non-zero digit
+                        call PrintRst16                         ; Print percentage
+                        PrintMsg(Msg.Dump4)                     ; Print "%)..." then go to next line
+                        ret
+pend
+
+UpOneLine               proc
+                        PrintMsg(UpBuffer)
                         ret
 pend
 

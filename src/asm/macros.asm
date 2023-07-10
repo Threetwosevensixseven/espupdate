@@ -54,6 +54,11 @@ CSBreak                 macro()                         ; Intended for CSpect de
                         pop bc                          ; then we restore the value of bc we saved earlier
 mend
 
+CSBreak2                macro()
+                        noflow
+                        db $DD, $01
+mend
+
 CSExit                  macro()                         ; Intended for CSpect debugging
                         noflow                          ; enabled when the -exit switch is supplied
                         db $DD, $00                     ; This executes as NOP:NOP on real hardware
@@ -119,6 +124,11 @@ mend
 PrintMsg                macro(Address)                  ; Parameterised wrapper for null-terminated buffer print routine
                         ld hl, Address
                         call PrintRst16
+mend
+
+PrintMsgAlt             macro(Address)                  ; Use alternate -1 terminator byte, instead of 0
+                        ld hl, Address
+                        call PrintRst16Alt
 mend
 
 PrintBufferHex          macro(Addr, Len)                ; Parameterised wrapper for fixed-length hex print routine
@@ -213,6 +223,18 @@ ESPSendBytes            macro(BufferStart, BufferLength) ; Parameterised wrapper
                         call ESPSendBytesProc
 mend
 
+ESPSendSlip             macro(BufferStart, BufferLength) ; Parameterised wrapper for ESP send routine
+                        ld hl, SLIP.Sync
+                        ld de, 1
+                        call ESPSendBytesProc
+                        ld hl, BufferStart
+                        ld de, BufferLength
+                        call ESPSendBytesEscProc
+                        ld hl, SLIP.Sync
+                        ld de, 1
+                        call ESPSendBytesProc
+mend
+
 ESPReadReg              macro(Addr32)                   ; Parameterised wrapper for ESP low level SLIP read routine
                         ld hl, Addr32 and $FFFF
                         ld (SLIP.ReadRegAddr), hl
@@ -295,4 +317,11 @@ EnableReadValidate      macro()
                         ld hl, ESPValidateCmdProc       ; Parameterised wrapper for the ESP SLIP buffer read validate
                         ld (ESPSendCmdWithDataProc.ValidateProcSMC), hl ; re-enabling routine. Invoke after
 mend                                                                    ; EnableReadValidate().
+
+Add32                   macro(InA_32, InB_32, Out_32)
+                        ld hl, InA_32
+                        ld de, InB_32
+                        ld bc, Out_32
+                        call Add32Proc
+mend
 

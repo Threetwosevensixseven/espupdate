@@ -22,7 +22,8 @@ CSpect optionbool 15, -10, "CSpect", false              ; Option in Zeus GUI to 
 RealESP optionbool 80, -10, "Real ESP", false           ; Launch CSpect with physical ESP in USB adaptor
 UploadNext optionbool 160, -10, "Next", false           ; Copy dot command to Next FlashAir card
 ErrDebug optionbool 212, -10, "Debug", false            ; Print errors onscreen and halt instead of returning to BASIC
-AppendFW optionbool 270, -10, "AppendFW", false         ; Pad dot command and append the NXESP-formatted firmware
+Dump16KOnly optionbool 270, -10, "16K Dump", false      ; Ignore detected sizes and only dump 16K of the FLASH
+//AppendFW optionbool 270, -10, "AppendFW", false       ; Pad dot command and append the NXESP-formatted firmware
 
 org $2000                                               ; Dot commands always start at $2000
 Start:
@@ -57,6 +58,15 @@ Begin:                  di                              ; We run with interrupts
                         cp 8                            ; Exit with error if not a Next. HL still points to err message,
                         jp nz, Return.WithCustomError   ; be careful if adding code between the Next check and here!
 IsANext:
+                        NextRegRead($54)                ; Backup existing banks in all four slots,
+                        ld (DeallocateBanks.R54), a     ; and do it right now in case we take an early exit.
+                        NextRegRead($55)                ; We can't do this backup before the IsANext check,
+                        ld (DeallocateBanks.R55), a     ; because reading these I/O ports will have a bad effect
+                        NextRegRead($56)                ; on a non-Next.
+                        ld (DeallocateBanks.R56), a     ; We might still have exited before this point,
+                        NextRegRead($57)                ; but only on a classic Spectrum, where the default values
+                        ld (DeallocateBanks.R57), a     ; of these four banks will be guaranteed to be 4/5/0/1.
+
                         Rst8(esxDOS.M_DOSVERSION)       ; Check if we are running in NextZXOS
                         ld hl, Err.NotOS                ; If esxDOS (carry set),
                         jp c, Return.WithCustomError    ; exit with an error.
@@ -103,6 +113,7 @@ ArgLoop:                ld de, ArgBuffer                ; Parse remaining args i
                         call ParseForce
                         call ParseWaitKeyRet
                         call ParseFlashSize
+                        call ParseDump
                         jr ArgLoop
 NoMoreArgs:
                         ld a, (WantsHelp)
@@ -116,6 +127,20 @@ DoHelp:                 call DisablePrintScroll         ; When printing help, ho
                           jp Return.ToBasic
                         endif
 NoHelp:
+                        xor a                           ; A=0, query current mode information
+                        ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
+                        ld de, IDE_MODE                 ; M_P3DOS takes care of stack safety stack for us
+                        Rst8(esxDOS.M_P3DOS)            ; Make NextZXOS API call through esxDOS API with M_P3DOS
+                        ErrorIfNoCarry(Err.NotOS)       ; Fatal error, exits dot command
+                        and %000000 11                  ; A bits 1..0 are LAYER
+                        jr z, EndLayerDetection         ; If LAYER 0, buffer will already contain 32 backspaces
+                        ld hl, UpBuffer
+                        ld (hl), 11                     ; Otherwise CHR$ 11 is up, in all other layers
+                        inc hl
+                        ld (hl), 0                      ; Null-terminate buffer
+                        PrintMsgAlt(Msg.NoScroll)       ; Print CHR$ 26;CHR$ 0; to disable scroll when not LAYER 0
+EndLayerDetection:
+
                         ; This dot command is way larger than 8KB, so we have a strategy for dealing with that.
                         ; NextZXOS will automatically load the first 8KB, which contains all the core code,
                         ; and will leave the file handle open. If the core code is less than 8KB, Zeus will
@@ -126,7 +151,7 @@ NoHelp:
                         call esxDOS.GetHandle
 
                         ; The next <=16KB in the file contains the ESP uploader stubs, additional code and buffers.
-                        ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate three 8KB
+                        ; This is assembled so that it runs at $8000-BFFF. We will use IDE_BANK to allocate four 8KB
                         ; banks, which must be freed before exiting the dot command.
                         call Allocate8KBank             ; Bank number in A (not E), errors have already been handled
                         ld (DeallocateBanks.Bank1), a   ; Save bank number
@@ -139,18 +164,24 @@ NoHelp:
 
                         ; Now we can page in the four 8K banks at $8000, $A000, $C000 and $E000, and try to load the
                         ; remainder of the dot command code. This paging will need to be undone during cmd exit.
-                        nextreg $57, a                  ; Allocated bank for $E000 was already in A, page it in.
+
                         ld a, (DeallocateBanks.Bank1)
                         nextreg $54, a                  ; Page in allocated bank for $8000
                         ld a, (DeallocateBanks.Bank2)
                         nextreg $55, a                  ; Page in allocated bank for $A000
                         ld a, (DeallocateBanks.Bank3)
                         nextreg $56, a                  ; Page in allocated bank for $C000
+                        ld a, (DeallocateBanks.Bank4)
+                        nextreg $57, a                  ; Page in allocated bank for $E000
 
                         ld hl, $8000                    ; Start loading at $8000
                         ld bc, $4000                    ; Load up to 16KB of data
                         call esxDOS.fRead
                         ErrorIfCarry(Err.BadDot)
+FlashOrDump:
+                        ld a, (DumpFW)
+                        cp 1                            ; If we are dumping FW, skip section
+                        jp z, SetUARTStdSpeed           ; where we validate filename and read FW
 CheckFW:
                         PrintMsg(Msg.ReadFW)
                         ld a, (HasFWFileName)           ; Do we have a filename from the first arg?
@@ -168,12 +199,12 @@ ReadFW:                 ld hl, $C000                    ; Start loading at $C000
                         or c                            ; the dot cmd, or the external FW file was zero length.
                         jp nz, FWFound
 
-                        if enabled AppendFW
-                          ErrorAlways(Err.FWMissing)
-                        else
+                        //if enabled AppendFW
+                        //  ErrorAlways(Err.FWMissing)
+                        // else
                           PrintMsg(Msg.ExternalFW)
                           ErrorAlways(Err.FWMissing)
-                        endif
+                        //endif
 
 FWFound:                cp 7                            ; Check we read 7 bytes
                         jp nz, BadFormat
@@ -526,10 +557,12 @@ DetectIssue:
                         PrintMsg(Msg.Issue)             ; "Using flash size: "
                         NextRegRead(Reg.BoardID)        ; Read BoardID
                         and 15                          ; 0 = Issue 2, 1 = Issue 3, 2 = Issue 4, 3..15 = Unknown
+                        //ld a, 3                       ; TESTING ONLY!
                         cp 3
                         jr c, GetIssue
-                        ld a, 2
-GetIssue:               swapnib                         ; a = record# in Issue table (BoardID * 16)
+                        ld a, 3
+GetIssue:               swapnib
+                        rlca                            ; a = record# in Issue table (BoardID * 32)
                         ld hl, Issue.Table
                         ld c, a
                         ld b, 0
@@ -549,6 +582,32 @@ DefaultSize:            add hl, 9                       ; (hl) = flash size (Num
                         inc hl                          ; (hl) = flash size (ASCII) in MB
                         ld a, (hl)
                         ld (FlashSizeChar), a
+                        if (not enabled Dump16KOnly)
+                          push hl
+                          CSBreak()
+                          inc hl
+                          inc hl
+                          ld e, (hl)
+                          inc hl
+                          ld d, (hl)                    ; DE = block count
+                          ld (DumpPacketCount), de      ; Patch block count into the dump loop
+                          inc hl
+                          ld e, (hl)
+                          inc hl
+                          ld d, (hl)                    ; DE = dump size (middle 2 bytes of 32bit word!)
+                          ld (SLIP.DumpSize), de        ; Patch dump size into the SLIP packet definition
+                          inc hl
+                          ld e, (hl)
+                          inc hl
+                          ld d, (hl)                    ; (DE) = block count in ASCII, null-terminated
+                          ld (PrintDumpProgress.BlockTot), de ; Patch block count into the progress print
+                          inc hl
+                          ld e, (hl)
+                          inc hl
+                          ld d, (hl)                    ; DE = percentage increment in 8.8 fixed point format
+                          ld (PrintDumpProgress.PercentInc), de ; Patch percentage increment into the progress print
+                          pop hl
+                        endif
 PrintSize:              call PrintRst16                 ; Assume any unknown Board IDs have 4MB flash size
                         PrintMsg(Msg.FlashSize2)
 
@@ -625,6 +684,10 @@ OkStub:                 PrintMsg(Msg.Stub2)
                           ; time.sleep(0.05)  # get rid of crap sent during baud rate change
                           ; self.flush_input()
                         endif
+
+                        ld a, (DumpFW)                  ; If dumping firmware,
+                        or a                            ; then go to the firmware dump routine,
+                        jp nz, BeginDump                ; otherwise continue with the firmware flash routine.
 
                         ; flash_set_parameters(self, 0x00100000) [1MB]
                         ; fl_id = 0
@@ -812,7 +875,7 @@ HashVerified:           PrintMsg(Msg.GoodMd5)           ; "Hash of data verified
                         ; pkt = struct.pack('<I', int(not reboot)) = 0x00000001
                         ; self.check_command("leave compressed flash mode", self.ESP_FLASH_DEFL_END, pkt)
                         ESPSendCmdWithData(ESP_FLASH_DEFL_END, SLIP.ExitBlock, SLIP.ExitBlockLen, Err.ExitWrite)
-
+FinalResetESP:
                         PrintMsg(Msg.ResetESP)          ; "Resetting ESP..."
                         call ResetESP
                         call Wait80Frames
@@ -820,7 +883,135 @@ HashVerified:           PrintMsg(Msg.GoodMd5)           ; "Hash of data verified
                         call ESPReadIntoBuffer
                         call ESPReadIntoBuffer
                         RestoreReadTimeout()
-                        PrintMsg(Msg.Success)           ; "ESP updated successfully!"
+                        ld hl, [FinalMsg]Msg.Success    ; "ESP updated successfully!"
+                        call PrintRst16
+                        jp EndOfCommand
+BeginDump:
+                        PrintMsg(Msg.DumpingFW)         ; "Dumping firmware..."
+                        ld a, 255
+                        ld (esxDOS.Handle), a
+                        ld a, '*'                       ; Default (current) drive
+                        ld hl, DumpFacFileName          ; ESPDump.fac, in hl because we're in a dot command
+                        ld b, $0E                       ; $02 = esx_mode_write
+                        Rst8(esxDOS.F_OPEN)             ; $0C = create new file, delete existing
+                        ErrorIfCarry(Err.DumpCreate)
+                        ld (esxDOS.Handle), a
+
+                        call PrintDumpProgress.NoUp
+
+                        ; Cmd xd2: READ_FLASH
+                        ; Four 32-bit words: flash offset,
+                        ;                    read length,
+                        ;                    flash sector size,
+                        ;                    read packet size,
+                        ;                    maximum number of un-acked packets
+                        ; data = esp.read_flash(args.address, args.size, flash_progress)
+                        ; args.address   = 0x00000000
+                        ; args.size      = 0x00010000
+                        ; flash_progress = function
+                        ; def read_flash(self, offset, length, progress_fn=None)
+                        ; self.check_command("read flash", self.ESP_READ_FLASH,
+                        ;   struct.pack('<IIII', offset, length, self.FLASH_SECTOR_SIZE, 64))
+                        ; offset                 = 0x00000000
+                        ; length                 = 0x00010000
+                        ; self.FLASH_SECTOR_SIZE = 0x00001000
+                        ; self.command(op, data, chk, timeout=timeout)
+                        ;   op      = 210
+                        ;   data    = 16 bytes (see below)
+                        ;   chk     = 0
+                        ;   timeout = 3
+                        ; data consists of:
+                        ;   offset            = 0x00000000 (UInt32)
+                        ;   length            = 0x00010000 (UInt32)
+                        ;   FLASH_SECTOR_SIZE = 0x00001000 (UInt32)
+                        ;   packets           = 0x00000040 (UInt32)
+                        ;   Ignore what the PyCharm debugger says - it is showing 14 bytes instead of 16 :(
+                        ld hl, 12                            ; Just for this command, only read the 12 bytes
+                        ld (ESPReadIntoBuffer.BufferLen), hl ; corresponding to the command response
+                        ESPSendCmdWithData(ESP_READ_FLASH, SLIP.Dump, SLIP.DumpLen, Err.DumpInit)
+NextDumpPacket:
+                        call ESPReadandDecodePacket     ; Read an entire SLIP packet (max 8KB raw, 4KB decoded)
+                        jp c, CloseFileParseError
+                        ld de, BigBuffer                ; Returned with hl = byte after packet end
+                        sbc hl, de                      ; Carry was clear because no error, so sbc is ok
+                        ld (DumpByteCount), hl          ; SMC> Save length for reply packet
+                        ld bc, hl                       ; bc = length to write
+                        ld hl, BigBuffer                ; hl = address to write from
+                        ld a, (esxDOS.Handle)           ; a  = file handle
+                        Rst8(esxDOS.F_WRITE)            ; Append to the file
+                        ErrorIfCarry(Err.DumpSave)
+
+                        ; Send dump packet acknowledgement in a SLIP packet.
+                        ; Usually c0 00 10 00 00 c0 because packets are 4KB in size
+                        ; and total dump size (1MB or 4MB) is an exact multiple of 4KB.
+                        ld hl, [DumpByteCount]SMC       ; Write current dump received count (16bit)
+                        ld (ReceivedNow), hl            ; into buffer (32bit).
+                        Add32(ReceivedTotal, ReceivedNow, ReceivedTotal) ; Add to existing count (32bit)
+                        ESPSendSlip(ReceivedTotal, ReceivedTotalLen) ; Send dump packet acknowledgement SLIP packet
+
+                        ld hl, [DumpPacketCount]16      ; Will eventually be calculated
+                        dec hl
+                        ld (DumpPacketCount), hl
+                        ld a, h
+                        or l
+                        jp z, DumpCompleted             ; If more packets remaining, download them
+                        call PrintDumpProgress
+                        jp NextDumpPacket
+DumpCompleted:
+                        PrintMsg(Msg.DumpingCS)         ; Print "Getting MD5 hash...". MD5 hash is sent by the
+                        call esxDOS.CloseFile           ; ESP_READ_FLASH command after all packets are acknowledged.
+                        ld hl, 16                       ; Just for this time, only read the 16 bytes
+                        ld (ESPReadIntoBuffer.BufferLen), hl ; corresponding to the MD5 hash response
+                        call ESPReadandDecodePacket     ; Read a single SLIP packet
+                        PrintBufferHex($C000, 16)       ; Print MD5 in ASCII hex
+
+                        ld a, 255
+                        ld (esxDOS.Handle), a
+                        ld a, '*'                       ; Default (current) drive
+                        ld hl, DumpMD5FileName          ; ESPDump.md5, in hl because we're in a dot command
+                        ld b, $0E                       ; $02 = esx_mode_write
+                        Rst8(esxDOS.F_OPEN)             ; $0C = create new file, delete existing
+                        ErrorIfCarry(Err.HashCreate)
+                        ld (esxDOS.Handle), a
+
+                        ; Create an .md5 file using *nix style md5sum output as file format:
+                        ; https://man.freebsd.org/cgi/man.cgi?query=md5
+                        ld hl, $C000                    ; Start of binary MD5
+                        ld de, $C010                    ; Start of hash file buffer
+                        ld bc, 16                       ; Convert 16 bytes
+                        call Bin2Hex                    ; from binary to hex
+                        ld a, ' '
+                        ld (de), a                      ; Add space to buffer
+                        inc de
+                        ld a, '*'
+                        ld (de), a                      ; Add asterisk to buffer (signifying binary mode)
+                        inc de
+                        ld hl, DumpFacFileName
+                        ld bc, DumpFacFileNameLen
+                        ldir                            ; Add dump filename to buffer
+                        ld a, LF
+                        ld (de), a                      ; Add LF to buffer (*nix style)
+
+                        ld hl, $C010                    ; hl = address to write from
+                        ld bc, 46                       ; bc = length to write
+                        ld a, (esxDOS.Handle)           ; a  = file handle
+                        Rst8(esxDOS.F_WRITE)            ; Append buffer to the file
+                        ErrorIfCarry(Err.HashSave)
+                        call esxDOS.CloseFile
+
+                        PrintMsg(Msg.DumpFile)          ; Print :"Dump file: ESPDump.fac"
+                        PrintMsg(DumpFacFileName)
+                        PrintMsg(Msg.HashFile)          ; Print :"Hash file: ESPDump.hash"
+                        PrintMsg(DumpMD5FileName)
+                        PrintMsg(Msg.EOL)
+
+                        ld hl, Msg.DumpSuccess          ; Change final message to "ESP dumped successfully!"
+                        ld (FinalMsg), hl
+                        jp FinalResetESP                ; Rejoin main program flow that happens after flashing
+
+CloseFileParseError:
+                        call esxDOS.CloseFile
+                        ErrorAlways(Err.DumpParse)
 EndOfCommand:
                         if (ErrDebug)
                           ; This is a temporary testing point that indicates we have have reached

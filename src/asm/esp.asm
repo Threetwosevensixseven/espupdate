@@ -83,6 +83,15 @@ SLIP                    proc
   FinalizeBlockLen      equ $-FinalizeBlock             ; FinalizeBlock should be 16 bytes long
   ExitBlock:            dl 0x00000001                   ; int(not reboot) (1, hardcoded)
   ExitBlockLen          equ $-ExitBlock                 ; ExitBlock should be 4 bytes long
+  Dump:                 dl 0x00000000                   ; offset (start of FLASH, hardcoded)
+  DumpSize equ $+1:     dl 0x00004000                   ; length (length to dump, 1MB or 4MB, default 16K)
+                        dl 0x00001000                   ; FLASH_SECTOR_SIZE (4KB, hardcoded, can't change)
+                        dl 0x00000001                   ; packets (1, hardcoded, higher values are same as 1)
+  DumpLen               equ $-Dump                      ; Dump should be 16 bytes long
+  DumpAck:              db $C0
+  DumpAckBytesRcvd:     dl 0x00000000                   ; 32bit number of chars received in dump packet
+                        db $C0                          ; Will have packet size added to it each time
+  DumpAckLen            equ $-DumpAck
   LastErr:              ds 0
 pend
 
@@ -184,8 +193,8 @@ ESPReadIntoBuffer       proc
                         add hl, [WaitNFrames]5
                         ld (TimeoutFrame), hl
                         ld bc, UART_GetStatus
-                        ld hl, Buffer
-                        ld de, Buffer.Len
+                        ld hl, [BufferAddr]Buffer
+                        ld de, [BufferLen]Buffer.Len
 WaitNotBusy:            in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
                         jp c, HasData                   ; Read Data if available
@@ -473,5 +482,68 @@ ResetESP                proc                            ; Reset ESP with a norma
                         call Wait5Frames                ; Hold in reset
                         nextreg 2, 0                    ; Set RST high
 NoReset:                ret
+pend
+
+; Each SLIP packet begins and ends with 0xC0. Within the packet, all occurrences of 0xC0 and 0xDB
+; are replaced with 0xDB 0xDC and 0xDB 0xDD, respectively. The replacing is to be done after the
+; checksum and lengths are calculated, so the packet length may be longer than the size field below.
+ESPReadandDecodePacket  proc
+                        di
+                        ld (SavedStack), sp             ; Save stack
+                        ld sp, $8000                    ; Put stack in upper 16K so FRAMES gets update
+                        //ld a, 24
+                        //ld (SCR_CT), a
+                        //ld a, '.'
+                        //rst 16
+                        ei
+                        //FillLDIR(BigBuffer, BigBufferLen, 0) ; Clear big read buffer
+                        xor a
+                        ld (CountC0), a                 ; Start off with C0 count as zero
+                        ld bc, UART_GetStatus
+                        ld hl, BigBuffer
+                        ld de, BigBufferLen
+AnotherByte:            call GetByte
+                        cp $C0
+                        jr nz, NotC0
+                        ld a, (CountC0)
+                        cp 1
+                        jr z, Success
+                        inc a
+                        ld (CountC0), a
+                        jr NextChar
+NotC0:                  cp $DB                          ; $DB is a SLIP escape character
+                        jr nz, Decoded
+                        call GetByte
+                        cp $DC
+                        jr nz, NotDC
+                        ld a, $C0                       ; $DB $DC becomes $CO (without incrementing CountC0)
+                        jr Decoded
+NotDC:                  cp $DD
+                        jr nz, Error
+                        ld a, $DB                       ; $DB DD becomes $DB
+Decoded:                ld (hl), a                      ; Write decoded char into buffer
+                        inc hl
+                        dec de                          ; See if any more buffer left
+NextChar:               ld a, d
+                        or e
+                        jr nz, AnotherByte              ; If so, check if there are more data bytes ready to read,
+                        jr Error
+GetByte:                in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus
+                        rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
+                        jr nc, GetByte                  ; Read Data if available
+HasData:                inc b                           ; Otherwise Read the byte,
+                        in a, (c)                       ; from the UART Rx port,
+                        dec b
+                        ret
+Error:                  ld a, 24
+                        ld (SCR_CT), a
+                        ld a, CR
+                        rst 16
+                        scf                             ; Signal error
+                        jr Return
+Success:                or a                            ; otherwise clear carry to signal success,
+Return:                 di
+                        ld sp, [SavedStack]SMC
+                        ret                             ; and return
 pend
 

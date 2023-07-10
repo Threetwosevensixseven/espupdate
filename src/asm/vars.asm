@@ -27,6 +27,7 @@ Progress:               ds 16                   ; 15 chars with terminating null
 CRbeforeErr:            ds 1                    ; Zero = no CR, Non-zero = CR
 FlashSizeChar:          ds 2                    ; 0 = unassigned, '1' = 1MB, '4' = 4MB
 FlashSizeNum:           ds 1                    ; 0 = unassigned,  1  = 1MB,  4  = 4MB
+DumpFW:                 ds 1                    ; 0 = flash ESP FW, 1 = dump ESP FW
 
 ; UART
 Prescaler:              ds 3
@@ -61,6 +62,17 @@ BlockCount:             ds 2
 BlockHeaderStart:       ds 2
 TimeoutBackup:          ds 2
 InProgMode:             ds 1
+CountC0:                ds 1
+ReceivedNow:            ds 4
+ReceivedTotal:          ds 4
+ReceivedTotalLen        equ $-ReceivedTotal
+NumBuffer:              db "00000", 0
+Tot16:                  db "16", 0
+Tot256:                 db "256", 0
+Tot1024:                db "1024", 0
+ColsPerLine:            ds 1
+UpBuffer:               ds 32, 8:db 0           ; Will get overwritten with db 11, 0 if not in LAYER 0
+
 
 ; Features
 Features                proc
@@ -71,4 +83,15 @@ pend
 ; Files
 FWFileName:             ds 256                  ; Filename buffer to load firmware from
 HasFWFileName:          ds 1
+DumpFacFileName:        db "ESPDump.fac", 0
+DumpFacFileNameLen:     equ $-DumpFacFileName-1
+DumpMD5FileName:        db "ESPDump.md5", 0
+
+Issue                   proc Table:
+  ;  IssueID                 Size  MB        Blocks  Patch  BlockSizeAddr  PercentInc    Pad ; BoardID
+  db "2", CR,       ds 7, db 1,    "1", 0: dw $0100, $1000,        Tot256,      $0064: ds 12 ;       0
+  db "3", CR,       ds 7, db 4,    "4", 0: dw $0400, $4000,       Tot1024,      $0019: ds 12 ;       1
+  db "4", CR,       ds 7, db 4,    "4", 0: dw $0400, $4000,       Tot1024,      $0019: ds 12 ;       2
+  db "Unknown", CR, ds 1, db 4,    "4", 0: dw $0400, $4000,       Tot1024,      $0019        ;       3
+pend
 

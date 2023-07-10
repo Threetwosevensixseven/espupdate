@@ -82,10 +82,10 @@ Bank4 equ $+1:          ld a, $FF                       ; Default value of $FF m
                                                         ; In more robust library code we might want to set these
                                                         ; locations back to $FF before exiting, but here we are
                                                         ; definitely exiting the dot command imminently.
-                        nextreg $54, 4                  ; Restore what BASIC is expecting to find at $8000 (16K bank 2)
-                        nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
-                        nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
-                        nextreg $57, 1                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
+                        nextreg $54, [R54]4             ; Restore what BASIC is expecting to find at $8000 (16K bank 2)
+                        nextreg $55, [R55]5             ; Restore what BASIC is expecting to find at $A000 (16K bank 2)
+                        nextreg $56, [R56]0             ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
+                        nextreg $57, [R57]1             ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
                         ret
 pend
 
@@ -261,11 +261,11 @@ pend
 ;        Fc=1: parsed argument has been copied to DE and null-terminated
 ;        HL=command tail after this argument
 ;        BC=length of argument
-; NOTE: BC is validated to be 1..255; if not, it does not return but instead
-;       exits via show_usage.
+; NOTE:  BC is validated to be 1..255; if not, it does not return but instead
+;        exits dot command with "Invalid Arguments" BASIC error report.
 ;
 ; Routine provided by Garry Lancaster, with thanks :) Original is here:
-; https://gitlab.com/thesmog358/tbblue/blob/master/src/asm/dot_commands/defrag.asm#L599
+; https://gitlab.com/thesmog358/tbblue/-/blob/48f84896fa99a1388c4a85b4a8c3356ceccc91ce/src/asm/dot_commands/arguments.asm#L17
 GetSizedArgProc         proc
                         ld a, h
                         or l
@@ -412,10 +412,119 @@ Return:                 pop hl
 IsOne:                  ld (FlashSizeChar), a
                         ld a, 1
                         ld (FlashSizeNum), a
+                        push hl
+                        ld hl, $0100                    ; block count
+                        ld (DumpPacketCount), hl
+                        ld hl, $1000                    ; dump size (middle 2 bytes of 32bit word!)
+                        ld (SLIP.DumpSize), hl
+                        ld hl, Tot256                   ; block count in ASCII, null-terminated
+                        ld (PrintDumpProgress.BlockTot), hl
+                        ld hl, $0064                    ; percentage increment in 8.8 fixed point format
+                        ld (PrintDumpProgress.PercentInc), hl
+                        pop hl
                         jr Return
 IsFour:                 ld (FlashSizeChar), a
                         ld a, 4
                         ld (FlashSizeNum), a
+                        push hl
+                        ld hl, $0400                    ; block count
+                        ld (DumpPacketCount), hl
+                        ld hl, $4000                    ; dump size (middle 2 bytes of 32bit word!)
+                        ld (SLIP.DumpSize), hl
+                        ld hl, Tot1024                  ; block count in ASCII, null-terminated
+                        ld (PrintDumpProgress.BlockTot), hl
+                        ld hl, $0019                    ; percentage increment in 8.8 fixed point format
+                        ld (PrintDumpProgress.PercentInc), hl
+                        pop hl
                         jr Return
+pend
+
+ParseDump               proc
+                        ld a, b
+                        or c
+                        cp 2
+                        ret nz
+                        push hl
+                        ld hl, ArgBuffer
+                        ld a, (hl)
+                        cp '-'
+                        jr nz, Return
+                        inc hl
+                        ld a, (hl)
+                        cp 'd'
+                        jr nz, Return
+                        ld a, 1
+                        ld (DumpFW), a
+Return:                 pop hl
+                        ret
+pend
+
+                        ; http://z80-heaven.wikidot.com/advanced-math#toc5
+                        ; (addint64, 45 bytes, 294cc) but modified from 64bit to 32bit
+                        ; In:  HL = first operand (32bit)
+                        ;      DE = second operand (32bit)
+                        ;      BC = location of result
+                        ; Out: (BC)=(HL)+(DE) (32bit)
+Add32Proc               proc
+                        ld a, (de):add a, (hl):ld (bc), a:inc hl:inc de:inc bc
+                        ld a, (de):adc a, (hl):ld (bc), a:inc hl:inc de:inc bc
+                        ld a, (de):adc a, (hl):ld (bc), a:inc hl:inc de:inc bc
+                        ld a, (de):adc a, (hl):ld (bc), a
+                        ret
+pend
+
+Num2Dec                 proc                            ; https://map.grauw.nl/sources/external/z80bits.html#5.1
+                        ld bc, -10000                   ; In:  HL = number to convert
+                        call Num1                       ;      DE = location of ASCII string
+                        ld bc, -1000                    ; Out: ASCII string at (DE)
+                        call Num1
+                        ld bc, -100
+                        call Num1
+                        ld c, -10
+                        call Num1
+                        ld c, b
+Num1:                   ld a, '0'-1
+Num2:                   inc a
+                        add hl, bc
+                        jr c, Num2
+                        sbc hl, bc
+                        ld (de) ,a
+                        inc de
+                        ret
+pend
+
+TrimZeroes              proc                            ; In:  DE = start of 5 digit buffer "00000", 0
+                        ex de, hl                       ; Out: HL = first non-"0" digit (or last "0")
+                        ld b, 4
+Loop:                   ld a, (hl)
+                        cp '0'
+                        ret nz
+                        inc hl
+                        djnz Loop
+                        ret
+pend
+
+Bin2Hex                 proc                            ; https://map.grauw.nl/sources/external/z80bits.html#5.2
+                        ld a, (hl)                      ; In:  HL = start of binary buffer
+                        call Num1                       ;      DE = start of ASCII hex buffer
+                        ld a, (hl)                      ;      BC = Bytes to convert
+                        call Num2                       ; Out: DE = address following last hex ASCII char
+                        inc hl
+                        dec bc
+                        ld a, b
+                        or c
+                        jr nz, Bin2Hex
+                        ret
+Num1:                   rra
+                        rra
+                        rra
+                        rra
+Num2:                   or $F0
+                        daa
+                        add a, $A0
+                        adc a, $40
+                        ld (de), a
+                        inc de
+                        ret
 pend
 
